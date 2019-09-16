@@ -156,18 +156,21 @@ info "starting uwsgi"
 
 
 ## Go through all books and build
-info "Building & Deploying books"
-cd "${BOOKS_PATH}"
-/bin/ls | while read book; do
-    (
-        cd $book;
-        if [ ! -f NOBUILD ]; then
-            runestone build $buildargs deploy
-        else
-            info "skipping $book due to NOBUILD file"
-        fi
-    );
-done
+if [ "$RUNESTONE_BUILD_BOOKS_ON_STARTUP" = "true" ]
+then
+    info "Building & Deploying books"
+    cd "${BOOKS_PATH}"
+    /bin/ls | while read book; do
+        (
+            cd $book;
+            if [ ! -f NOBUILD ]; then
+                runestone build $buildargs deploy
+            else
+                info "skipping $book due to NOBUILD file"
+            fi
+        );
+    done
+fi
 
 
 tail -F ${WEB2PY_PATH}/logs/uwsgi.log

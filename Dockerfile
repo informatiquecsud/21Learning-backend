@@ -30,8 +30,8 @@ EXPOSE ${WEB2PY_PORT}
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Add in Chrome repo. Copied from https://tecadmin.net/setup-selenium-with-chromedriver-on-debian/.
-RUN curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-    echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+#RUN curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+#    echo "deb [arch=amd64]  http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
 
 # Components from requirements.txt which are available in Debian
 # Missing ones:
@@ -52,29 +52,36 @@ RUN apt-get update && \
         gcc \
         git \
         unzip \
-        emacs-nox \
-        less \
-        libfreetype6-dev postgresql-common postgresql postgresql-contrib \
         libpq-dev libxml2-dev libxslt1-dev \
-        openjdk-8-jre-headless \
-        rsync wget nginx xvfb x11-utils google-chrome-stable && \
+        postgresql-common postgresql postgresql-contrib \
+        # libfreetype6-dev \
+        wget nginx  && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Chromedriver. Based on https://tecadmin.net/setup-selenium-with-chromedriver-on-debian/.
-RUN wget https://chromedriver.storage.googleapis.com/76.0.3809.126/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
-    mv chromedriver /usr/bin/chromedriver && \
-    chown root:root /usr/bin/chromedriver && \
-    chmod +x /usr/bin/chromedriver
+# RUN wget https://chromedriver.storage.googleapis.com/76.0.3809.126/chromedriver_linux64.zip && \
+    # unzip chromedriver_linux64.zip && \
+    # mv chromedriver /usr/bin/chromedriver && \
+    # chown root:root /usr/bin/chromedriver && \
+    # chmod +x /usr/bin/chromedriver
 
 # The rest could be done and ran under a regular (well, staff for installing under /usr/local) user
 RUN useradd -s /bin/bash -M -g staff --home-dir ${WEB2PY_PATH} runestone && \
     mkdir -p /srv
 
 # Install additional components
-RUN git clone https://github.com/web2py/web2py ${WEB2PY_PATH} && \
-    cd ${WEB2PY_PATH} && \
-    git submodule update --init --recursive
+# RUN git clone https://github.com/web2py/web2py ${WEB2PY_PATH} && \
+#     cd ${WEB2PY_PATH} && \
+#     git submodule update --init --recursive
+
+# Instead of blinfly clone the master branch of web2py (not well tested), we
+# should better stick to the source code distributed under the download section
+# of the official web2py website. 
+RUN wget https://mdipierro.pythonanywhere.com/examples/static/web2py_src.zip && \
+    unzip web2py_src.zip && \
+    rm -f web2py_src.zip && \
+    mv web2py ${WEB2PY_PATH} && \
+    cd ${WEB2PY_PATH}
 
 RUN mkdir -p ${RUNESTONE_PATH}
 ADD . ${RUNESTONE_PATH}
@@ -86,7 +93,7 @@ WORKDIR ${RUNESTONE_PATH}
 RUN mkdir -p private && \
     echo "sha512:16492eda-ba33-48d4-8748-98d9bbdf8d33" > private/auth.key && \
     pip3 install -r requirements.txt && \
-    pip3 install -r requirements-test.txt && \
+    # pip3 install -r requirements-test.txt && \
     pip3 install uwsgi uwsgitop && \
     rm -rf ${WEB2PY_PATH}/.cache/* && \
     cp ${RUNESTONE_PATH}/scripts/run_scheduler.py ${WEB2PY_PATH}/run_scheduler.py && \
@@ -94,9 +101,6 @@ RUN mkdir -p private && \
 
 WORKDIR ${WEB2PY_PATH}
 
-# All configuration will be done within entrypoint.sh upon initial run
-# of the container
-COPY docker/entrypoint.sh /usr/local/sbin/entrypoint.sh
 
 # Copy configuration files to get nginx and uwsgi up and running
 RUN mkdir -p /etc/nginx/sites-enabled
@@ -108,4 +112,9 @@ COPY scripts/logging.conf /srv/web2py/logging.conf
 RUN ln -s /etc/systemd/system/uwsgi.service /etc/systemd/system/multi-user.target.wants/uwsgi.service
 RUN rm /etc/nginx/sites-enabled/default
 
+# All configuration will be done within entrypoint.sh upon initial run
+# of the container
+COPY docker/entrypoint.sh /usr/local/sbin/entrypoint.sh
+
 CMD /bin/bash /usr/local/sbin/entrypoint.sh
+
