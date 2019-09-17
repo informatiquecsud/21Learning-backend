@@ -59,3 +59,8 @@ tests/test_book/build
 instructors.csv
 htmlcov
 /languages/
+pgadmin
+configs/*
+.env*
+backup
+__pycache__
