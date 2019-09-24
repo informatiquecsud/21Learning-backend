@@ -1,3 +1,4 @@
+
 import click
 import csv
 import json
@@ -8,6 +9,10 @@ import signal
 import subprocess
 from sqlalchemy import create_engine
 import sys
+
+from datetime import date
+
+from _21_learning_utils import *
 
 
 class Config(object):
@@ -494,6 +499,7 @@ def inituser(
                     )
                 )
                 exit(1)
+
     else:
         userinfo = {}
         userinfo["username"] = username or click.prompt("Username")
@@ -616,6 +622,7 @@ def addinstructor(config, username, course):
         sys.exit(-1)
 
     res = eng.execute("select id from courses where course_name=%s", course).first()
+    print("course id", res, course)
     if res:
         courseid = res[0]
     else:
@@ -892,3 +899,199 @@ def check_db_for_useinfo(config):
     res = eng.execute("select count(*) from pg_class where relname = 'useinfo'")
     count = res.first()[0]
     return count
+
+
+#############################################################################
+#### 21 Learning management commands
+#############################################################################
+
+
+@cli.command()
+@click.option("--id", help="class id to drop all the students from")
+@pass_config
+def dropclass(config, id):
+    eng = create_engine(config.dburl)
+
+    res = eng.execute("delete from auth_group_validity where auth_group_id = {};".format(
+        id
+    ))
+    res = eng.execute("delete from auth_group where id = {};".format(
+        id
+    ))
+
+    if res:
+        click.echo("Class with id {id} dropped successfully".format(id=id))
+    else:
+        click.echo("Error trying to drop class with id {id}".format(
+            id=id
+        ))
+
+
+@cli.command()
+@click.option("--class-id", help="class id to drop all the students from")
+@click.option("--class-name", help="class id to drop all the students from")
+@pass_config
+def empty_class(config, class_id, class_name):
+    eng = create_engine(config.dburl)
+
+    if class_name:
+        res = eng.execute('''SELECT id from auth_group where role = '{}';'''.format(
+            class_name)).first()
+        if not res:
+            click.echo("Unable to find class {}".format(class_name))
+        else:
+            class_id = res[0]
+    elif not class_id:
+        click.echo("Sorry, you provided no class_name and no class_id. Unable to proceed!")
+        return
+    else:
+        pass
+
+    # get user list in the class to empty
+    user_rows = eng.execute('''SELECT user_id FROM auth_membership WHERE group_id = {class_id}'''.format(
+        class_id=class_id
+    ))
+    user_ids_to_delete = ['{}'.format(user[0]) for user in user_rows]
+
+    if len(user_ids_to_delete) == 0:
+        click.echo("No users to delete")
+        return
+
+    # we must first remote all relevant entries in
+    click.echo("Removing all users from class with id: {} ...".format(class_id))
+    res = eng.execute('''DELETE FROM auth_membership WHERE group_id = {class_id};'''.format(
+        class_id=class_id
+    ))
+    if not res:
+        click.echo("Unable to remove all users from class {}".format(id))
+        return
+
+    res = eng.execute('''DELETE FROM auth_user WHERE id in ({});'''.format(
+        ', '.join(user_ids_to_delete)
+    ))
+    if not res:
+        click.echo(
+            "Unable to delete all users accounts from class with id: {}".format(class_id))
+
+
+@cli.command()
+@click.option("--csvfile", help="path to the csv file to load the class from")
+@click.option("--class-name", help="name of the class to load the students from the csv file into")
+@click.option("--class-id", default=0, help="id of the class to load the students from the csv file into")
+@click.option("--course", default='doi', help="course to add the students into")
+@click.option("--start-date", default='', help="the class must be valid starting from this date")
+@click.option("--end-date", default='', help="the class must be valid up until this date")
+@click.option("--delimiter", default=';', help="CSV field delimiter")
+@click.option("--quotechar", default='"', help="Character used to delimit single fields containing delimiter")
+@pass_config
+def add_class(config, csvfile, class_name, class_id, course, start_date, end_date, delimiter, quotechar):
+    """Loads a class of students from a csv file into the database"""
+    eng = create_engine(config.dburl)
+    # by default, the class is valid from the moment of its creation in the database
+    start_date = start_date or str(date.today())
+
+    # Si la classe existe déjà, ajouter dans cette classe déjà existante
+    res = eng.execute('''SELECT id FROM auth_group WHERE role = '{class_name}';'''.format(
+        class_name=class_name
+    )).first()
+    if res:
+        class_id = res[0]
+        click.echo("Found existing class with name {} and id {}".format(
+            class_name, class_id
+        ))
+
+    if class_id == 0:
+        class_id = create_class(eng, class_name, start_date, end_date)
+    else:
+        class_id = int(class_id)
+
+    # try to open the specified csv file path
+    try:
+        # il faut mettre l'encoding utf-8-sig pour qu'il n'y ait pas le
+        # caractère BOM pour dire si c'est du little ou du big indian
+        # https://stackoverflow.com/questions/17912307/u-ufeff-in-python-string
+        with open(csvfile, 'r', encoding='utf-8-sig') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=delimiter, quotechar=quotechar)
+
+            # For now, we don't require the class names to be unique across a
+            # period of validity. We just have to display the valid classes at
+            # each time in the dashboard.
+            class_name_usable = True
+
+            if not class_name_usable:
+                raise ValueError("Unable to use class name '{}'".format(class_name))
+
+            users = []
+
+            for student in reader:
+                userinfo = {}
+                userinfo['username'] = student['E-Mail'].split('@')[0]
+                userinfo['password'] = generate_random_password(length=8)
+                userinfo['first_name'] = student['Prénom']
+                userinfo['last_name'] = student['Nom']
+                userinfo['email'] = student['E-Mail']
+                userinfo['course'] = course
+                userinfo['instructor'] = False
+                userinfo['role_id'] = class_id
+
+                if userinfo['email'] == '':
+                    click.echo("User {} {} has empty email. Cannot add".format(
+                        userinfo['first_name'],
+                        userinfo['last_name']
+                    ))
+                    continue
+
+                click.echo("{class_name};{fname};{lname};{passwd}".format(
+                    fname=userinfo['first_name'],
+                    lname=userinfo['last_name'],
+                    class_name=class_name,
+                    passwd=userinfo['password'],
+                ))
+
+                os.environ['RSM_USERINFO'] = json.dumps(userinfo)
+                res = subprocess.call(
+                    "python web2py.py --no-banner -S runestone -M -R applications/runestone/rsmanage/makeuser.py", shell=True)
+                if res != 0:
+                    click.echo("Failed to create user {} error {} fix your data and try again".format(
+                        line[0], res), err=True)
+
+                # build user list
+                users.append(userinfo)
+
+                # ajout de l'utilisateur en question dans le groupe qui vient
+                # d'être créé
+                sql = '''
+                SELECT id FROM auth_user WHERE username = '{username}'
+                '''.format(username=userinfo['username'])
+                res = eng.execute(sql).first()
+
+                if res:
+                    user_id = res[0]
+                else:
+                    print("Sorry, that user does not exist")
+                    sys.exit(-1)
+
+                res = eng.execute(
+                    '''
+                    INSERT INTO auth_membership (user_id, group_id)
+                    VALUES({user_id}, {group_id})
+                    '''.format(
+                        user_id=user_id,
+                        group_id=class_id
+                    )
+                )
+                if not res:
+                    click.echo("Failed to add user {} into class of id {}".format(
+                        user_id,
+                        class_id))
+
+            # write created user list into tmp csv file
+            with open('tmp-passwords.csv', 'w+', encoding='utf-8') as tmp_passwd_file:
+                for userinfo in users:
+                    tmp_passwd_file.write('{username};{classname};{passwd}\n'.format(
+                        username=userinfo['username'],
+                        classname=class_name,
+                        passwd=userinfo['password']))
+
+    except Exception as e:
+        click.echo(str(e), err=True)

@@ -55,7 +55,7 @@ RUN apt-get update && \
         libpq-dev libxml2-dev libxslt1-dev \
         postgresql-common postgresql postgresql-contrib \
         # libfreetype6-dev \
-        wget nginx  && \
+        wget nginx rsync && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Chromedriver. Based on https://tecadmin.net/setup-selenium-with-chromedriver-on-debian/.

@@ -1,0 +1,10 @@
+auth_group_validity.sql:
+class.add_to.course.sql:
+courses_instructors.sql:
+delete_all_students.sql:
+empty_class.sql:
+ls-active-classes.sql:
+ls-groups.sql:
+orphan_users_delete.sql:
+orphan_users_ls.sql:
+user_roles.sql:

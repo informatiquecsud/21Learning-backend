@@ -116,26 +116,26 @@ fi
 
 
 # Setup instructors, if the file exists
-if [ -f "${RUNESTONE_PATH}/configs/instructors.csv" -a "${RUNESTONE_PATH}/configs/instructors.csv" -nt iadd.stamp ]; then
-    info "Setting up instructors"
-    rsmanage inituser --fromfile ${RUNESTONE_PATH}/configs/instructors.csv
-    cut -d, -f1,6 ${RUNESTONE_PATH}/configs/instructors.csv \
-    | tr ',' ' ' \
-    | while read n c ; do
-        rsmanage addinstructor  --username $n --course $c  || echo "unable to add instructor"
-    done
-    touch iadd.stamp
-fi
+# if [ -f "${RUNESTONE_PATH}/configs/instructors.csv" -a "${RUNESTONE_PATH}/configs/instructors.csv" -nt iadd.stamp ]; then
+#     info "Setting up instructors"
+#     rsmanage inituser --fromfile ${RUNESTONE_PATH}/configs/instructors.csv
+#     cut -d, -f1,6 ${RUNESTONE_PATH}/configs/instructors.csv \
+#     | tr ',' ' ' \
+#     | while read n c ; do
+#         rsmanage addinstructor  --username $n --course $c  || echo "unable to add instructor"
+#     done
+#     touch iadd.stamp
+# fi
 
 # Setup students, again if the file exists
-if [ -f "${RUNESTONE_PATH}/configs/students.csv" -a "${RUNESTONE_PATH}/configs/students.csv" -nt sadd.stamp ]; then
-    info "Setting up students"
-    rsmanage inituser --fromfile ${RUNESTONE_PATH}/configs/students.csv
-    info "Students were provided -- disabling signup!"
-    # Disable signup
-    echo -e "\nauth.settings.actions_disabled.append('register')" >> $WEB2PY_PATH/applications/runestone/models/db.py
-    touch sadd.stamp
-fi
+# if [ -f "${RUNESTONE_PATH}/configs/students.csv" -a "${RUNESTONE_PATH}/configs/students.csv" -nt sadd.stamp ]; then
+#     info "Setting up students"
+#     rsmanage inituser --fromfile ${RUNESTONE_PATH}/configs/students.csv
+#     info "Students were provided -- disabling signup!"
+#     # Disable signup
+#     echo -e "\nauth.settings.actions_disabled.append('register')" >> $WEB2PY_PATH/applications/runestone/models/db.py
+#     touch sadd.stamp
+# fi
 
 # Uncomment for debugging
 # /bin/bash
@@ -152,7 +152,11 @@ info "starting nginx"
 service nginx start
 
 info "starting uwsgi"
+mkdir -p ${WEB2PY_PATH}/logs
+touch ${WEB2PY_PATH}/logs/uwsgi.log
+
 /usr/local/bin/uwsgi --ini /etc/uwsgi/sites/runestone.ini &
+
 
 
 ## Go through all books and build
@@ -171,6 +175,9 @@ then
         );
     done
 fi
+
+# otherwise database/*.table files are not writable (seems)
+# chown www-data.root -R ${RUNESTONE_PATH}/databases
 
 
 tail -F ${WEB2PY_PATH}/logs/uwsgi.log
