@@ -32,6 +32,8 @@ BUILDDIR = "{}/build".format(APP_PATH)
 PRIVATEDIR = "{}/private".format(APP_PATH)
 CUSTOMDIR = "{}/custom_courses".format(APP_PATH)
 
+IS_SQLALCHEMY_VERBOSE = False
+
 
 @click.group(chain=True)
 @click.option("--verbose", is_flag=True, help="More verbose output")
@@ -613,7 +615,8 @@ def addinstructor(config, username, course):
     """
     Add an existing user as an instructor for a course
     """
-    eng = create_engine(config.dburl)
+    course = course.replace('\r', '')
+    eng = create_engine(config.dburl, echo=IS_SQLALCHEMY_VERBOSE)
     res = eng.execute("select id from auth_user where username=%s", username).first()
     if res:
         userid = res[0]
