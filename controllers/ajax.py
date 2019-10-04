@@ -413,7 +413,6 @@ def runlog():  # Log errors and runs with code
 
 
 def gethist():
-
     """
     return the history of saved code by this user for a particular acid
     :Parameters:
@@ -1361,7 +1360,8 @@ def preview_question():
         # in uwsgi then sys.executable is uwsgi which doesn't work.
         # Why not just run runestone?
         popen_obj = subprocess.Popen(
-            [settings.python_interpreter, "-m", "runestone", "build"],
+            #[settings.python_interpreter, "-m", "runestone", "build"],
+            ["runestone", "build"],
             # The build must be run from the directory containing a ``conf.py`` and all the needed support files.
             cwd="applications/{}/build/preview".format(request.application),
             # Capture the build output as text in case of an error.
