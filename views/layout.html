@@ -111,7 +111,7 @@
                                 {{ if auth.user: }}
                                     <li><span class='loggedinuser'>{{=auth.user.username}}</span></li>
                                 {{ else: }}
-                                    <li><span class='loggedinuser'>Not logged in</span></li>
+                                    <li><span class='loggedinuser'>Non connecté</span></li>
                                 {{ pass }}
                                 {{ if auth.user: }}
                                     <li class="divider"></li>
@@ -202,13 +202,13 @@
             <div class="container">
                 <p class="pull-right">
                     {{ if auth.user: }}
-                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>{{=auth.user.email}}</span> | <a href="#">Retour vers le haut de la page</a>
                     {{ else: }}
-                        <span class='loggedinuser'>Not logged in</span> | <a href="#">Back to top</a>
+                        <span class='loggedinuser'>Non connecté</span> | <a href="#">Retour vers le haut de la page</a>
                     {{ pass }}
                 </p>
                 <p>
-                    &copy; Copyright 2018 Runestone Interactive LLC
+                    &copy; Copyright 2019 Cédric Donner
                     {{ if settings.academy_mode: }}
                         &emsp; ● <a href="/{{=request.application}}/default/privacy">Privacy Policy</a> &emsp; ●  <a href="/{{=request.application}}/default/terms">Terms of Service</a>
                     {{ pass }}
