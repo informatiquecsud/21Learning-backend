@@ -29,8 +29,8 @@ settings.login_method = "local"
 settings.login_config = ""
 settings.course_id = "devcourse"
 settings.plugins = []
-settings.server_type = "http://"
-settings.academy_mode = True
+settings.server_type = "https://"
+settings.academy_mode = False
 settings.lti_only_mode = False
 settings.coursera_mode = False
 
