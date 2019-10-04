@@ -61,9 +61,16 @@ COMPOSE = docker-compose -f docker-compose.yml $(COMPOSE_PGADMIN) $(COMPOSE_OPTI
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
 	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
+howto-load-dotenv.ovh:
+	@echo 'set -a; source .env.ovh set +a' | clip.exe
 
 echo-compose-options:
 	@echo 'Compose options is: ' $(COMPOSE_OPTIONS)
+
+.PHONY: no_targets__ list
+no_targets__:
+list:
+    sh -c "$(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | sort"
 
 # TODO: This .env.build stuff has to be eventually wiped off, an other way of doing it
 # should be found ...
@@ -90,12 +97,11 @@ push: .env.build
 		--exclude=.git \
 		--exclude=venv \
 		--exclude=ubuntu \
-		--exclude=build \
-		--exclude=published \
 		--exclude=__pycache__ \
 		--exclude=backup \
 		--exclude=databases \
-		--exclude=data/pass*
+		--exclude=data/pass* \
+		--exclude=books
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env'
 
@@ -234,24 +240,57 @@ remote.%:
 # Course management
 course.build.coursename:
 course.build.oxocard101:
+course.build.overview:
 course.build.doi:
 course.build.%:
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
 	
-push.course.build.oxocard101:
-push.course.build.doi:
-push.course.build.coursename:
-push.course.build.%:
+course.add_instructor.oxocard101:
+course.add_instructor.overview:
+course.add_instructor.doi:
+course.add_instructor.coursename:
+course.add_instructor.%:
+	@read -p "Username to add: " user_name; \
+	echo "INSERT INTO course_instructor (course, instructor) \
+				SELECT courses.id, auth_user.id FROM courses, auth_user \
+				WHERE username = '$$user_name' AND courses.course_name = '$*';" \
+					| $(RUN_SQL)
+
+course.show_instructors.coursename:
+course.show_instructors.%:
+	echo $
+
+course.ins.%:
+	echo "INSERT INTO courses (course_name, base_course, term_start_date, login_required, python3) VALUES ('$*', '$*', '$(shell date -I)', 'T', 'T');" | $(RUN_SQL)
+course.del.%:
+	echo "DELETE FROM courses WHERE course_name='$*';" | $(RUN_SQL)
+
+
+	
+course.push.oxocard101:
+course.push.overview:
+course.push.doi:
+course.push.coursename:
+course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
-	make push
+	$(RSYNC) -raz books/$* $(REMOTE):$(SERVER_DIR)/books/ \
+		--exclude=build \
+		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build.$*
-	
-	
+
+live.course.push.:
+live.course.build.:
+live.%:
+	watchmedo shell-command --patterns="*.rst;*.py" --recursive  --command='make $*'
+
+		
 	
 # another way of doing that kind of thing is with the -c flag of bash
 # runestone-rebuild-oxocard101:
+# runestone-rebuild-overview:
 # $(COMPOSE) exec runestone bash -c "cd $(WEB2PY_BOOKS)/oxocard101 && runestone build deploy"
+# $(COMPOSE) exec runestone bash -c "cd $(WEB2PY_BOOKS)/overview && runestone build deploy"
 
 
 ##############################################################
@@ -278,18 +317,19 @@ show-tables:
 	echo "SELECT table_name, table_type FROM information_schema.TABLES WHERE table_schema = 'public';" | $(RUN_SQL)
 
 
-%.course.ins:
-	echo "INSERT INTO courses (course_name, base_course, term_start_date) VALUES ('$*', '$*', '$(shell date -I)');" | $(RUN_SQL)
-%.course.del:
-	echo "DELETE FROM courses WHERE course_name='$*';" | $(RUN_SQL)
-
-init-21learning-tables: query.auth_group_validity
-init-21learning-courses: oxocard101.course.ins doi.course.ins
+init-21learning-tables: auth_group_validity.sql.run
+init-21learning-courses: course.ins.oxocard101 course.ins.overview course.ins.doi
 init-21learning-instructors: data/instructors.csv
 	$(RSMANAGE_T) inituser --fromfile $(RUNESTONE_DIR)/$<
 	cut -d, -f1,6 $< | tr ',' ' ' | while read username course; do echo adding $$username as an instructor to $$course; $(RSMANAGE_T) addinstructor --username $$username --course $$course; done
+init-21learning-classes:
+	make 1gy5.class.csv.load
+	make 1gy7.class.csv.load
+	make 1gy8.class.csv.load
+	make 1gy11.class.csv.load
 
-init-21learning: init-21learning-tables init-21learning-courses init-21learning-instructors
+
+init-21learning: init-21learning-tables init-21learning-courses init-21learning-instructors init-21learning-classes
 
 
 %.user.delete:
@@ -299,6 +339,19 @@ students.delete:
 students.orphans.delete:
 	echo "DELETE FROM auth_user  ;" | $(RUN_SQL)
 
+user.add_to.group.user_id:
+user.add_to.group.%:
+	@read -p "Role name: " group_name; \
+	echo "INSERT INTO auth_membership (user_id, group_id) SELECT $$user_id as "user_id", auth_group.id as "group_id" FROM auth_group WHERE role = '$$group_name';" | $(RUN_SQL)
+	
+user.clean_activity.username:
+user.clean_activity.%:
+	@echo "Deleting all activity data of user $*"
+	@echo "DELETE FROM useinfo where sid = '$*';" | $(RUN_SQL)
+	@echo "DELETE FROM user_sub_chapter_progress WHERE user_id IN (SELECT id FROM auth_user WHERE username = '$*')" | $(RUN_SQL)
+
+passwd:
+	docker exec -i $(RUNESTONE_CONTAINER_ID) rsmanage resetpw
 
 
 
@@ -318,10 +371,29 @@ class.empty:
 	# make class.create.$*
 	$(RSMANAGE_T) empty-class --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
 	
-class.passwd.show:	
-%.class.passwd.show:
+class.passwd.show.class_name:	
+class.passwd.show.%:
 	@echo "Passwords of students of class $*"
 	@cat data/passwords-$*.csv
+
+class.ls.classname:
+remote.class.ls.classname:
+class.ls.%:
+	echo "SELECT \
+			auth_user.username, \
+			auth_user.first_name, \
+			auth_user.last_name, \
+			auth_user.email, \
+			role, \
+			auth_user.course_name \
+		FROM \
+			auth_user \
+			LEFT JOIN auth_membership ON auth_membership.user_id = auth_user.id \
+			LEFT JOIN auth_group ON auth_group.id = auth_membership.group_id \
+		WHERE \
+			ROLE = upper('$*')" \
+		| $(RUN_SQL)
+
 
 roles.ls:
 	make ls-groups.sql.run
@@ -332,7 +404,8 @@ class.delete.%:
 	echo "DELETE FROM auth_group_validity WHERE auth_group_id = $*;" | $(RUN_SQL) && \
 	echo "DELETE FROM auth_group WHERE id = $*;" | $(RUN_SQL)
 
-class.add_to_course.class_name:	
+class.add_to_course.classmake name:	
+remote.class.add_to_course.classmake name:	
 class.add_to_course.%:
 	make courses.ls
 	@read -p "Course id: " course_id; \
@@ -341,6 +414,23 @@ class.add_to_course.%:
 		echo adding student ID: $$student_id to course ID: $$course_id ; \
 		echo "INSERT INTO user_courses (user_id, course_id) VALUES ($$student_id, $$course_id);" | $(RUN_SQL) ; \
 	done;
+
+class.switch_to.doi.class_name:
+remote.class.switch_to.doi.class_name:
+class.switch_to.doi.%:
+	echo "UPDATE auth_user SET course_name = 'doi-1920-$*' \
+		WHERE auth_user.id IN ( \
+			SELECT \
+			auth_user.id \
+		FROM \
+			auth_user \
+			LEFT JOIN auth_membership ON auth_membership.user_id = auth_user.id \
+			LEFT JOIN auth_group ON auth_group.id = auth_membership.group_id \
+		WHERE \
+			ROLE = upper('$*') \
+		)" | $(RUN_SQL)
+
+
 
 query.run.%:
 	echo "$*" | $(RUN_SQL)
@@ -362,6 +452,9 @@ env.show:
 db.backup:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+db.backup.insert:
+	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
+	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
 
 
 # TODO: to be developped, use the pg_restore utility. Still have to decide (or
@@ -371,6 +464,19 @@ db.restore:
 	@echo "DB restore: not implemented yet"
 
 
+
+#######################################################################
+### gestion des questions
+#######################################################################
+
+shortanswer.divid:
+shortanswer.%:
+	echo "select u.username, u.first_name, u.last_name, answer from shortanswer_answers left join auth_user as u on sid = u.username where div_id = '$*';" | $(RUN_SQL)
+	
+
+questions.clean.coursename:
+questions.clean.%:
+	echo "delete from questions WHERE base_course = '$*';" | $(RUN_SQL)
 
 #######################################################################
 ### auto-completion for table operations
