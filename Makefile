@@ -36,6 +36,7 @@ DATETIME = $(shell date +$(DATE_FMT))
 
 RSMANAGE = docker exec -it $(RUNESTONE_CONTAINER_ID) rsmanage
 RSMANAGE_T = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
+RSMANAGE_I = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
 RUN_SQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
@@ -200,19 +201,19 @@ server-init:
 	$(SSH) 'echo "export POSTGRES_USER=$(POSTGRES_USER)" >> ~/.bashrc'
 
 proxy-start:
-	cd nginx-letsencrypt && docker-compose build && docker-compose up -d'
+	cd nginx-letsencrypt && docker-compose build && docker-compose up -d
 proxy-down:
-	cd nginx-letsencrypt && docker-compose down'
+	cd nginx-letsencrypt && docker-compose down
 proxy-logs:
-	cd nginx-letsencrypt && docker-compose logs'
+	cd nginx-letsencrypt && docker-compose logs
 proxy-logsf:
-	cd nginx-letsencrypt && docker-compose logs -f'
+	cd nginx-letsencrypt && docker-compose logs -f
 proxy-bash:
-	cd nginx-letsencrypt && docker-compose exec nginx-proxy bash'
+	cd nginx-letsencrypt && docker-compose exec nginx-proxy bash
 proxy-ps:
-	cd nginx-letsencrypt && docker-compose ps'
+	cd nginx-letsencrypt && docker-compose ps
 proxy-conf:
-	cd nginx-letsencrypt && docker-compose exec -T nginx-proxy cat /etc/nginx/conf.d/default.conf'
+	cd nginx-letsencrypt && docker-compose exec -T nginx-proxy cat /etc/nginx/conf.d/default.conf
 
 	
 remote.runestone-sync-errors:
@@ -243,6 +244,14 @@ course.build.oxocard101:
 course.build.overview:
 course.build.doi:
 course.build.%:
+	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
+	
+# Course management
+course.build-all.coursename:
+course.build-all.oxocard101:
+course.build-all.overview:
+course.build-all.doi:
+course.build-all.%:
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
 	
 course.add_instructor.oxocard101:
@@ -278,6 +287,18 @@ course.push.%:
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build.$*
+	
+course.push-all.oxocard101:
+course.push-all.overview:
+course.push-all.doi:
+course.push-all.coursename:
+course.push-all.%:
+	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
+	$(RSYNC) -raz books/$* $(REMOTE):$(SERVER_DIR)/books/ \
+		--exclude=build \
+		--exclude=published
+	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
+	make remote.course.build-all.$*
 
 live.course.push.:
 live.course.build.:
@@ -349,6 +370,9 @@ user.clean_activity.%:
 	@echo "Deleting all activity data of user $*"
 	@echo "DELETE FROM useinfo where sid = '$*';" | $(RUN_SQL)
 	@echo "DELETE FROM user_sub_chapter_progress WHERE user_id IN (SELECT id FROM auth_user WHERE username = '$*')" | $(RUN_SQL)
+	
+user.init:
+	$(RSMANAGE_I) inituser
 
 passwd:
 	docker exec -i $(RUNESTONE_CONTAINER_ID) rsmanage resetpw
@@ -452,6 +476,10 @@ env.show:
 db.backup:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+get-db-backup: 
+	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress
+	
 db.backup.insert:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
