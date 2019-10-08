@@ -30,6 +30,7 @@ DOTENV_FILE = .env.$(ENV_NAME)
 
 RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
+PGADMIN_CONTAINER_ID = $(shell docker ps -qf "name=_pgadmin")
 
 DATE_FMT = "%Y-%m-%d_%H:%M:%S"
 DATETIME = $(shell date +$(DATE_FMT))
@@ -37,9 +38,14 @@ DATETIME = $(shell date +$(DATE_FMT))
 RSMANAGE = docker exec -it $(RUNESTONE_CONTAINER_ID) rsmanage
 RSMANAGE_T = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
 RSMANAGE_I = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
+
 RUN_SQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+PG_RESTORE = docker exec -i $(DB_CONTAINER_ID) pg_restore $(POSTGRES_DB)  -U $(POSTGRES_USER) 
+PSQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+DROPDB = docker exec -i $(DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
+CREATEDB = docker exec -i $(DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
 
 COMPOSE_PGADMIN = -f docker-compose-pgadmin.yml
 
@@ -105,6 +111,14 @@ push: .env.build
 		--exclude=books
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env'
+
+
+compose.up.service:
+compose.up.db:
+compose.up.runestone:
+compose.up.pgadmin:
+compose.up.%:
+	$(COMPOSE) up -d $*
 
 
 ssh:
@@ -477,8 +491,31 @@ db.backup:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
 
+test.pipe:
+	echo "salut" | docker exec -i $(DB_CONTAINER_ID) 'cat - > /home/message'
+db.restore.targz-name:
+db.restore.%:
+	@echo Restoring SQL dump $* ...
+	cp backup/db/$* backup/tmp.sql.gz
+	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
+	docker stop $(RUNESTONE_CONTAINER_ID)
+	docker stop $(PGADMIN_CONTAINER_ID)
+	$(DROPDB)
+	$(CREATEDB)
+	gunzip -c backup/db/$* | $(PSQL)
+	docker start $(RUNESTONE_CONTAINER_ID)
+	docker start $(PGADMIN_CONTAINER_ID)
+
+db.restore.last:
+	make db.restore.$(shell ls backup/db -1t | head -1)
+
+db.restore.from-remote: remote.db.backup get-db-backup db.restore.last
+
+
 get-db-backup: 
 	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress
+
+
 	
 db.backup.insert:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
