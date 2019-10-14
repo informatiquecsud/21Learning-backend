@@ -31,6 +31,7 @@ DOTENV_FILE = .env.$(ENV_NAME)
 RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
 PGADMIN_CONTAINER_ID = $(shell docker ps -qf "name=_pgadmin")
+HASURA_CONTAINER_ID = $(shell docker ps -qf "name=_hasura")
 
 DATE_FMT = "%Y-%m-%d_%H:%M:%S"
 DATETIME = $(shell date +$(DATE_FMT))
@@ -53,12 +54,12 @@ RUNESTONE_DIR = /srv/web2py/applications/runestone
 WEB2PY_BOOKS = $(RUNESTONE_DIR)/books
 
 # need to run the server-init rule for this to work
-COMPOSE_OPTIONS = -f docker-compose-local.yml
+COMPOSE_OPTIONS = -f docker-compose-local.yml -f api/hasura/docker-compose.yaml
 ifdef RUNESTONE_REMOTE
-	COMPOSE_OPTIONS = -f docker-compose-production.yml
+	COMPOSE_OPTIONS = -f docker-compose-production.yml -f api/hasura/docker-compose-prod.yaml
 endif
 
-ifdef USE_HIDORA
+ifdef
 	COMPOSE_OPTIONS =  -f docker-compose-production.yml -f docker-compose-production-hidora.yml
 endif
 
@@ -97,6 +98,7 @@ list:
 	@echo "HIDORA_SSH_HOST=$(HIDORA_SSH_HOST)" >> $(DOTENV_FILE)
 	@echo "HIDORA_SSH_PORT=$(HIDORA_SSH_PORT)" >> $(DOTENV_FILE)
 	@echo "USE_HIDORA=$(USE_HIDORA)" >> $(DOTENV_FILE)
+	@echo "HASURA_ADMIN_SECRET_KEY=$(HASURA_ADMIN_SECRET_KEY)" >> $(DOTENV_FILE)
 
 push: .env.build
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
@@ -117,9 +119,28 @@ compose.up.service:
 compose.up.db:
 compose.up.runestone:
 compose.up.pgadmin:
+compose.up.hasura:
 compose.up.%:
 	$(COMPOSE) up -d $*
 
+compose.down.service:
+compose.down.%:
+	$(COMPOSE) down $*
+compose.stop.service:
+compose.stop.%:
+	$(COMPOSE) stop $*
+compose.rm.service:
+compose.rm.%:
+	$(COMPOSE) rm -f  $*
+compose.logs.service:
+compose.logs.%:
+	$(COMPOSE) logs -f  $*
+compose.restart.service:
+compose.restart.%: 
+	make compose.stop.$* 
+	make compose.rm.$*
+	make compose.up.$*
+	make compose.logs.$*
 
 ssh:
 	$(SSH)  -F ./.ssh.config
@@ -247,9 +268,9 @@ download-docker-images:
 ## directory on the remote host $(SSH_HOST)
 ##############################################################
 %.remote:
-	$(SSH) 'cd $(SERVER_DIR) && make $*'
+	$(SSH) 'cd $(SERVER_DIR) && make $* '
 remote.%:
-	$(SSH) 'cd $(SERVER_DIR) && make $*'
+	$(SSH) 'cd $(SERVER_DIR) && make args.$* ARGS="$(REMOTE_ARGS)"'
 
 
 # Course management
@@ -258,6 +279,7 @@ course.build.oxocard101:
 course.build.overview:
 course.build.doi:
 course.build.%:
+	echo $(RUNESTONE_CONTAINER_ID)
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
 	
 # Course management
@@ -400,7 +422,7 @@ class.csv.load:
 %.class.csv.load: data/%.csv
 	# créer le groupe dans la base de données
 	# make class.create.$*
-	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
+	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course 1ecg7 --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
 	docker cp $(RUNESTONE_CONTAINER_ID):/srv/web2py/tmp-passwords.csv data/passwords-$*.csv
 
 class.empty:
@@ -500,11 +522,13 @@ db.restore.%:
 	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
 	docker stop $(RUNESTONE_CONTAINER_ID)
 	docker stop $(PGADMIN_CONTAINER_ID)
+	docker stop $(HASURA_CONTAINER_ID)
 	$(DROPDB)
 	$(CREATEDB)
 	gunzip -c backup/db/$* | $(PSQL)
 	docker start $(RUNESTONE_CONTAINER_ID)
 	docker start $(PGADMIN_CONTAINER_ID)
+	docker start $(HASURA_CONTAINER_ID)
 
 db.restore.last:
 	make db.restore.$(shell ls backup/db -1t | head -1)
@@ -564,3 +588,60 @@ query-completions.update:
 	@for query in $(shell ls sql); do echo $$query: >> query-completions.Makefile ; done
 	@echo "New completion file"
 	@cat -n query-completions.Makefile
+
+
+#######################################################################
+# Queries for managing the course Live
+#######################################################################
+useinfo.question.div_id:
+remote.useinfo.question.div_id:
+useinfo.question.%:
+	@echo "SELECT DISTINCT question from questions WHERE name LIKE '$*';" | $(RUN_SQL)
+	@echo "SELECT DISTINCT \
+		auth_user.last_name AS \"Nom\", \
+		auth_user.first_name AS \"Prénom\", \
+		useinfo.act AS \"Réponse\", \
+		useinfo.timestamp AS \"quand ?\" \
+	FROM \
+		useinfo \
+		INNER JOIN ( \
+			SELECT sid, div_id, MAX(timestamp) AS timestamp \
+			FROM useinfo \
+			GROUP BY sid, div_id \
+		) AS max_useinfo ON useinfo.sid = max_useinfo.sid AND useinfo.div_id = max_useinfo.div_id \
+			AND useinfo.timestamp = max_useinfo.timestamp \
+		LEFT JOIN auth_user ON useinfo.sid = auth_user.username \
+		LEFT JOIN questions ON useinfo.div_id = questions.name \
+	WHERE \
+		useinfo.div_id LIKE '$*' \
+		AND useinfo.course_id LIKE '$(COURSE)' \
+	ORDER BY auth_user.last_name, auth_user.first_name, useinfo.timestamp desc;" | $(RUN_SQL)
+
+subchapter.ls.questions.subchapter_label:
+subchapter.ls.questions.%:
+	@echo "SELECT \
+		name AS \"div_id\", \
+		question, \
+		question_type AS \"Donnée\" \
+	FROM \
+		questions \
+	WHERE \
+		subchapter = '$*' \
+	ORDER BY \
+		timestamp;" | $(RUN_SQL)
+subchapter.ls.questions.short.subchapter_label:
+subchapter.ls.questions.short.%:
+	for machin in $(shell echo "SELECT \
+		name AS \"div_id\" \
+	FROM \
+		questions \
+	WHERE \
+		subchapter = '$*' AND question IS NOT NULL \
+	ORDER BY \
+		timestamp;" | $(RUN_SQL) -qtAX); do make useinfo.question.$$machin COURSE=$(COURSE); done
+
+args.%:
+	make $* $(ARGS)
+
+stats:
+	make remote.subchapter.ls.questions.short.$(SUBSECTION) REMOTE_ARGS="COURSE=$(COURSE)" | grep -vE 'make\[.+\].+directory' > $(SUBSECTION)-$(COURSE).txt
