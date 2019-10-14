@@ -64,3 +64,4 @@ configs/*
 .env*
 backup
 __pycache__
+stats/*
