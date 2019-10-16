@@ -22,7 +22,7 @@ SERVER_DIR=~/runestone-server
 SERVER_COMPONENTS_DIR=/RunestoneComponents
 COMPONENTS_DIR=../RunestoneComponents
 RSYNC_BASE_OPTIONS= -e 'ssh -o StrictHostKeyChecking=no -p $(SSH_PORT)' --progress
-RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=__pycache__ --delete
+RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=stats --exclude=__pycache__ --delete
 RSYNC=rsync $(RSYNC_OPTIONS)
 TIME = $(shell date +%Y-%m-%d_%Hh%M)
 DOTENV_FILE = .env.$(ENV_NAME)
@@ -643,5 +643,33 @@ subchapter.ls.questions.short.%:
 args.%:
 	make $* $(ARGS)
 
-stats:
-	make remote.subchapter.ls.questions.short.$(SUBSECTION) REMOTE_ARGS="COURSE=$(COURSE)" | grep -vE 'make\[.+\].+directory' > $(SUBSECTION)-$(COURSE).txt
+stats.save:
+	make remote.subchapter.ls.questions.short.$(SUBSECTION) REMOTE_ARGS="COURSE=$(COURSE)" | grep -vE 'make\[.+\].+directory' > stats/$(SUBSECTION)-$(COURSE).txt
+	
+stats.view:
+	code stats/$(SUBSECTION)-$(COURSE).txt
+
+exams.clean.course_name:
+exams.clean.doi:
+exams.clean.%:
+	@echo "removing HTML pages for examens in $(SERVER_DIR)/books/$*/published/$*/examens/*"
+	$(SSH) 'cd runestone-server/books/$*/published/$*/examens/ && rm -f $(EXAM_CODE).html'
+
+# exams.setup-code.course_name:
+# exams.setup-code.%:
+# 	cd $(SERVER_DIR)/books/$*/published/$*/examens/ && mv exa-$(EXAM).html $(EXAM_CODE).html
+
+exams.push.course_name:
+exams.push.doi:
+exams.push.%:
+	make course.push-all.$*
+	$(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens/ && mv exa-$(EXAM).html $(EXAM_CODE).html'
+	# make remote.exams.setup-code.$* REMOTE_ARGS="EXAM_CODE=$(EXAM_CODE)
+	# EXAM=$(EXAM)"
+	# must be done to prevent other exams to be visible
+	$(SSH) rm -f runestone-server/books/$*/published/$*/examens/exa*.html
+	
+doc.exams.push:
+	@echo "make exams.push.doi EXAM=1-A EXAM_CODE=HKJHGZ"
+doc.exams.clean:
+	@echo "make exams.clean.doi EXAM=1-A EXAM_CODE=HKJHGZ"
