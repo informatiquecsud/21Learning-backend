@@ -115,32 +115,41 @@ push: .env.build
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env'
 
 
-compose.up.service:
-compose.up.db:
-compose.up.runestone:
-compose.up.pgadmin:
-compose.up.hasura:
-compose.up.%:
+service.up.service:
+service.up.db:
+service.up.runestone:
+service.up.pgadmin:
+service.up.hasura:
+service.up.%:
 	$(COMPOSE) up -d $*
 
-compose.down.service:
-compose.down.%:
+service.build.service-name:
+service.build.db:
+service.build.runestone:
+service.build.pgadmin:
+service.build.hasura:
+service.build.%:
+	$(COMPOSE) build $*
+
+
+service.down.service-name:
+service.down.%:
 	$(COMPOSE) down $*
-compose.stop.service:
-compose.stop.%:
+service.stop.service-name:
+service.stop.%:
 	$(COMPOSE) stop $*
-compose.rm.service:
-compose.rm.%:
+service.rm.service-name:
+service.rm.%:
 	$(COMPOSE) rm -f  $*
-compose.logs.service:
-compose.logs.%:
+service.logs.service-name:
+service.logs.%:
 	$(COMPOSE) logs -f  $*
-compose.restart.service:
-compose.restart.%: 
-	make compose.stop.$* 
-	make compose.rm.$*
-	make compose.up.$*
-	make compose.logs.$*
+service.restart.service-name:
+service.restart.%: 
+	make service.stop.$* 
+	make service.rm.$*
+	make service.up.$*
+	make service.logs.$*
 
 ssh:
 	$(SSH)  -F ./.ssh.config
@@ -533,10 +542,10 @@ db.restore.%:
 db.restore.last:
 	make db.restore.$(shell ls backup/db -1t | head -1)
 
-db.restore.from-remote: remote.db.backup get-db-backup db.restore.last
+db.restore.from-remote: remote.db.backup db.get-backup db.restore.last
 
 
-get-db-backup: 
+db.get-backup: 
 	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress
 
 
