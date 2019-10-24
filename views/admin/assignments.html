@@ -46,12 +46,18 @@
     <button class="btn" data-target="#renameAssignment" data-toggle="modal" onclick="fillinAssignmentName('renameName');" style="margin-top: 12px;">Rename</button>
     <fieldset>
       <legend>Assignment properties</legend>
-      <span id="totalPoints"></span><br>
+      <span id="totalPoints" style="margin-bottom: 10px;"></span><br>
       <form id="assignment-form">
         <label for="datetimepicker">Due Date: </label>
-        <input id="datetimepicker" name="due" type="text"><br>
-        <label for="assign_visible">Visible to Students</label>
-        <input id="assign_visible" type="checkbox" name="visible" value="T"><br>
+        <input id="datetimepicker" class="form-control" name="due" type="text"><br>
+        <div class="form-group form-check">
+        <label for="assign_visible" class="form-check-label">Visible to Students</label>
+        <input id="assign_visible" class="form-check-input" type="checkbox" name="visible" value="T"><br>
+        </div>
+        <div class="form-group form-check">
+            <label for="assign_is_timed" class="form-check-label">Show as Timed Assessment</label>
+            <input id="assign_is_timed" class="form-check-input" type="checkbox" name="is_timed" value="T"> (Use this to make quizzes or exams - <strong>Beta!</strong>)<br>
+        </div>
         <label for="assignment_description">Description: </label>
         <input class="form-control" id="assignment_description" name="description" type="text"><br>
 
@@ -306,13 +312,24 @@
                                 <h4 class="modal-title" id="editModalHeader">Edit Question</h4>
                               </div><!-- Modal Body -->
                               <div class="modal-body">
-                                <p>If you are not the original author of this question you must change the id on the first line of the directive.</p>
+                                <p>If you are not the original author of this question you must change the id on the first line of the directive.  If you add a unit test,
+                                  make sure that you add the parameter <code>:autograde: unittest </code> to the directive.  Likewise if you want
+                                  to make an autograded question available through the practice tool add <code>:practice: T</code> as a parameter.
+                                </p>
                                 <form id="editForm" name="editForm">
                                   <div class="form-group">
                                     <label for="change_difficulty">Change Difficulty</label>
                                     <div id="change_difficulty">
-                                      <input id="r1" name="rating" type="radio" value="1"><label for="r1">1</label> <input id="r2" name="rating" type="radio" value="2"><label for="r2">2</label> <input id="r3" name="rating" type="radio" value="3"><label for="r3">3</label> <input id="r4" name="rating" type="radio" value="4"><label for="r4">4</label> <input id="r5" name="rating" type="radio" value="5"><label for="r5">5</label>
+                                      <input id="r1" name="rating" type="radio" value="1"><label for="r1">1</label>
+                                      <input id="r2" name="rating" type="radio" value="2"><label for="r2">2</label>
+                                      <input id="r3" name="rating" type="radio" value="3"><label for="r3">3</label>
+                                      <input id="r4" name="rating" type="radio" value="4"><label for="r4">4</label>
+                                      <input id="r5" name="rating" type="radio" value="5"><label for="r5">5</label>
                                     </div>
+                                  </div>
+                                  <div class="form-group">
+                                    <label for="change_privacy">Make Private</label>
+                                      <input id="change_privacy" name="isprivate" type="checkbox">
                                   </div>
                                   <div class="form-group">
                                     <label for="addTags">Add Tags</label>

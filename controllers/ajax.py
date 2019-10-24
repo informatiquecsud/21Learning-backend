@@ -30,8 +30,17 @@ EVENT_TABLE = {
     "parsonsprob": "parsons_answers",
 }
 
+COMMENT_MAP = {
+    "sql": "--",
+    "python": "#",
+    "java": "//",
+    "javascript": "//",
+    "c": "//",
+    "cpp": "//",
+}
 
-def compareAndUpdateCookieData(sid):
+
+def compareAndUpdateCookieData(sid: str):
     if (
         "ipuser" in request.cookies
         and request.cookies["ipuser"].value != sid
@@ -45,6 +54,13 @@ def compareAndUpdateCookieData(sid):
 def hsblog():
     setCookie = False
     if auth.user:
+        if request.vars.course != auth.user.course_name:
+            return json.dumps(
+                dict(
+                    log=False,
+                    message="You appear to have changed courses in another tab.  Please switch to this course",
+                )
+            )
         sid = auth.user.username
         compareAndUpdateCookieData(sid)
         setCookie = (
@@ -53,6 +69,10 @@ def hsblog():
         # log entries that come from auth timing out even but the user hasn't reloaded
         # the page.
     else:
+        if request.vars.clientLoginStatus == "true":
+            logger.error("Session Expired")
+            return json.dumps(dict(log=False, message="Session Expired"))
+
         if "ipuser" in request.cookies:
             sid = request.cookies["ipuser"].value
             setCookie = True
@@ -282,6 +302,11 @@ def hsblog():
         response.cookies["ipuser"] = sid
         response.cookies["ipuser"]["expires"] = 24 * 3600 * 90
         response.cookies["ipuser"]["path"] = "/"
+        if auth.user:
+            response.cookies["last_course"] = auth.user.course_name
+            response.cookies["last_course"]["expires"] = 24 * 3600 * 90
+            response.cookies["last_course"]["path"] = "/"
+
     return json.dumps(res)
 
 
@@ -289,9 +314,21 @@ def runlog():  # Log errors and runs with code
     # response.headers['content-type'] = 'application/json'
     setCookie = False
     if auth.user:
+        if request.vars.course != auth.user.course_name:
+            return json.dumps(
+                dict(
+                    log=False,
+                    message="You appear to have changed courses in another tab.  Please switch to this course",
+                )
+            )
         sid = auth.user.username
         setCookie = True
+        print(sid)
     else:
+        print(request.vars.clientLoginStatus)
+        if request.vars.clientLoginStatus == "true":
+            logger.error("Session Expired")
+            return json.dumps(dict(log=False, message="Session Expired"))
         if "ipuser" in request.cookies:
             sid = request.cookies["ipuser"].value
             setCookie = True
@@ -377,8 +414,10 @@ def runlog():  # Log errors and runs with code
                     )
                     if request.vars.partner:
                         if _same_class(sid, request.vars.partner):
+                            comchar = COMMENT_MAP.get(request.vars.lang, "#")
                             newcode = (
-                                "# This code was shared by {}\n\n".format(sid) + code
+                                "{} This code was shared by {}\n\n".format(comchar, sid)
+                                + code
                             )
                             db.code.insert(
                                 sid=request.vars.partner,
@@ -453,7 +492,9 @@ def gethist():
         # get the code they saved in chronological order; id order gets that for us
         r = db(query).select(orderby=codetbl.id)
         res["history"] = [row.code for row in r]
-        res["timestamps"] = [row.timestamp.isoformat() for row in r]
+        res["timestamps"] = [
+            row.timestamp.replace(tzinfo=datetime.timezone.utc).isoformat() for row in r
+        ]
 
     response.headers["content-type"] = "application/json"
     return json.dumps(res)
@@ -839,7 +880,7 @@ def _getCorrectStats(miscdata, event):
     miscdata["yourpct"] = pctcorr
 
 
-def _getStudentResults(question):
+def _getStudentResults(question: str):
     """
     Internal function to collect student answers
     """
@@ -1354,7 +1395,7 @@ def preview_question():
         # Note that ``os.environ`` isn't a dict, it's an object whose setter modifies environment variables. So, modifications of a copy/deepcopy still `modify the original environment <https://stackoverflow.com/questions/13142972/using-copy-deepcopy-on-os-environ-in-python-appears-broken>`_. Therefore, convert it to a dict, where modifications will not affect the environment.
         env = dict(os.environ)
         # Prevent any changes to the database when building a preview question.
-        del env["DBURL"]
+        env.pop("DBURL", None)
         # Run a runestone build.
         # We would like to use sys.executable But when we run web2py
         # in uwsgi then sys.executable is uwsgi which doesn't work.
@@ -1446,7 +1487,53 @@ def get_datafile():
     return json.dumps(dict(data=file_contents))
 
 
-def _same_class(user1, user2):
+@auth.requires(
+    lambda: verifyInstructorStatus(auth.user.course_name, auth.user),
+    requires_login=True,
+)
+def broadcast_code():
+    """
+    Callable by an instructor to send the code in their scratch activecode
+    to all students in the class.
+    """
+    the_course = db(db.courses.course_name == auth.user.course_name).select().first()
+    cid = the_course.id
+    student_list = db(
+        (db.user_courses.course_id == cid)
+        & (db.auth_user.id == db.user_courses.user_id)
+    ).select()
+    shared_code = (
+        "{} Instructor shared code on {}\n".format(
+            COMMENT_MAP.get(request.vars.lang, "#"), datetime.datetime.utcnow().date()
+        )
+        + request.vars.code
+    )
+    counter = 0
+    for student in student_list:
+        if student.auth_user.id == auth.user.id:
+            continue
+        sid = student.auth_user.username
+        try:
+            db.code.insert(
+                sid=sid,
+                acid=request.vars.divid,
+                code=shared_code,
+                emessage="",
+                timestamp=datetime.datetime.utcnow(),
+                course_id=cid,
+                language=request.vars.lang,
+                comment="Instructor shared code",
+            )
+        except Exception as e:
+            logger.error("Failed to insert instructor code! details: {}".format(e))
+            return json.dumps(dict(mess="failed"))
+
+        counter += 1
+
+    return json.dumps(dict(mess="success", share_count=counter))
+
+
+def _same_class(user1: str, user2: str) -> bool:
     user1_course = (
         db(db.auth_user.username == user1).select(db.auth_user.course_id).first()
     )
@@ -1455,3 +1542,10 @@ def _same_class(user1, user2):
     )
 
     return user1_course == user2_course
+
+
+def login_status():
+    if auth.user:
+        return json.dumps(dict(status="loggedin", course_name=auth.user.course_name))
+    else:
+        return json.dumps(dict(status="loggedout", course_name=auth.user.course_name))

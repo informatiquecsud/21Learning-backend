@@ -8,6 +8,9 @@ services:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_DB: "${POSTGRES_DB}"
 
+  redis:
+    image: redis
+
   runestone:
     image: runestone/server
     restart: always
@@ -16,6 +19,7 @@ services:
       - ./:/srv/web2py/applications/runestone
     links:
       - db
+      - redis
     depends_on:
       - "db"
     environment:
@@ -35,3 +39,4 @@ services:
       RUNESTONE_DISABLE_REGISTER: "true"
       RUNESTONE_USE_DYNAMIC_PAGES: "true"
       RUNESTONE_BUILD_BOOKS_ON_STARTUP: "false"
+      REDIS_URI: "redis://redis:6379/0"

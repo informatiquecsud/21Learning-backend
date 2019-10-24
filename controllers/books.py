@@ -53,6 +53,10 @@ def _route_book(is_published=True):
     # Find the course to access.
     if auth.user:
         # Given a logged-in user, use ``auth.user.course_id``.
+        response.cookies["last_course"] = auth.user.course_name
+        response.cookies["last_course"]["expires"] = 24 * 3600 * 90  # 90 day expiration
+        response.cookies["last_course"]["path"] = "/"
+
         course = (
             db(db.courses.id == auth.user.course_id)
             .select(
@@ -90,6 +94,18 @@ def _route_book(is_published=True):
 
     else:
         # Get the base course from the URL.
+        if "last_course" in request.cookies:
+            last_base = (
+                db(db.courses.course_name == request.cookies["last_course"].value)
+                .select(db.courses.base_course)
+                .first()
+            )
+            if last_base.base_course == base_course:
+                # The user is trying to access the base course for the last course they logged in to
+                # there is a 99% chance this is an error and we should make them log in.
+                session.flash = "You Most likely want to log in to access your course"
+                redirect(URL(c="default", f="courses"))
+
         course = (
             db(db.courses.course_name == base_course)
             .select(
@@ -182,7 +198,6 @@ def _route_book(is_published=True):
     else:
         reading_list = "null"
 
-    # TODO: - Add log entry for page view
     try:
         db.useinfo.insert(
             sid=user_id,
@@ -206,6 +221,10 @@ def _route_book(is_published=True):
         else "false"
     )
 
+    questions = None
+    if subchapter == "Exercises":
+        questions = _exercises(base_course, chapter)
+    logger.debug("QUESTIONS = {} {}".format(subchapter, questions))
     return dict(
         course_name=course.course_name,
         base_course=base_course,
@@ -218,6 +237,7 @@ def _route_book(is_published=True):
         activity_info=json.dumps(div_counts),
         downloads_enabled=downloads_enabled,
         subchapter_list=_subchaptoc(base_course, chapter),
+        questions=questions,
     )
 
 
@@ -247,6 +267,32 @@ def _subchaptoc(course, chap):
         toclist.append(dict(subchap_uri=sc_url, title=title))
 
     return toclist
+
+
+def _exercises(basecourse, chapter):
+    """
+    Given a base course and a chapter return the instructor generated questions
+    for the Exercises subchapter.
+
+    """
+    print("{} {}".format(chapter, basecourse))
+    questions = db(
+        (db.questions.chapter == chapter)
+        & (db.questions.subchapter == "Exercises")
+        & (db.questions.base_course == basecourse)
+        & (db.questions.is_private == "F")
+        & (db.questions.from_source == "F")
+        & (
+            (db.questions.review_flag != "T") | (db.questions.review_flag == None)
+        )  # noqa: E711
+    ).select(
+        db.questions.htmlsrc,
+        db.questions.author,
+        db.questions.difficulty,
+        db.questions.qnumber,
+        orderby=db.questions.timestamp,
+    )
+    return questions
 
 
 # This is copied verbatim from https://github.com/pallets/werkzeug/blob/master/werkzeug/security.py#L30.

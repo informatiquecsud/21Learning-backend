@@ -1,4 +1,5 @@
 {{ extend "admin/instructors.html"}}
+
 {{ block tabcontent }}
 <script type="text/javascript" src="{{=get_course_url('_static/sharedb.js')}}"></script>
 <script type="text/javascript">
@@ -17,55 +18,45 @@
 
 <div class="col-md-5" style="margin-top: 50px; margin-bottom: 10px;">
 
-
-
-  <select required onchange="showColumn1();" id="gradingoption1" style="margin-bottom: 10px; margin-right: 5px; width:30%">
-            <option value="" disabled selected>Select:</option>
-            <option value="student">student</option>
-            <option value="chapter">chapter</option>
-            <option value="assignment">assignment</option>
-        </select>
-
-
-
-
-  <select required onchange="showColumn2();" id="gradingoption2" style="margin-bottom: 10px; margin-right: 5px; width:30%">
-            <option  value="" disabled selected>Select:</option>
-            <option  value="question">question</option>
-            <option value="chapter">chapter</option>
-            <option  value="assignment">assignment</option>
-        </select>
-
-
-
-
-  <select required onchange="showColumn3();" id="gradingoption3" style="margin-bottom: 10px; margin-right: 5px; width:30%">
-            <option value="" disabled selected>Select:</option>
-            <option value="student">student</option>
-            <option value="question">question</option>
-        </select>
-
-
-  <select multiple onchange="updateColumn2();" style="visibility: hidden; float:left; overflow-x: auto; margin-top: 25px; width:30%; margin-right: 5px;" size="10" id="gradingcolumn1">
+  <div>
+    <select required onchange="selectChapOrAssignment();" id="gradingoption1" class="form-control" style="margin-bottom: 10px;" >
+              <option value="" disabled selected>Select: Chapter or Assignment</option>
+              <option value="chapter">chapter</option>
+              <option value="assignment">assignment</option>
     </select>
 
+    <select onchange="updateQuestionList();" class="form-control" id="chaporassignselector" style="display:none;" >
+    </select>
+    <span id="releasestate" style="color: red;"></span>
+  </div>
 
-  <select multiple onchange="updateColumn3();" style="visibility: hidden; float:left; overflow-x: auto;  margin-top: 25px; width:30%; margin-right: 5px;" size="10" id="gradingcolumn2"></select>
+  <div>
+
+  <h3>Questions</h3>
+  <select multiple onchange="gradeSelectedStudent();" class="form-control" id="questionselector" style="display: none;" >
+  </select> <span class="allcbclass"><input type="checkbox" id="allquestioncb" /><label for="allquestioncb">Select All</label></span>
+  </div>
+  <div>
+
+  <h3>Students</h3>
+  <select multiple onchange="gradeIndividualItem();" class="form-control" id="studentselector" style="display: none;" >
+  </select> <span class="allcbclass"><input type="checkbox" id="allstudentcb" /><label for="allstudentcb">Select All</label></span>
+  </div>
 
 
-  <select multiple onchange="gradeIndividualItem();" style="visibility: hidden; float:left; overflow-x: auto;  margin-top: 25px; width:30%; margin-right: 5px;" size="10" id="gradingcolumn3"></select>
-  <p style="visibility: hidden">This paragraph takes up some space to deal with a funky display issue of the right side lumping over onto the left</p>
+<p style="visibility: hidden">This paragraph takes up some space to deal with a funky display issue of the right side lumping over onto the left</p>
 
 
   <div id="autogradingform" style="text-align: center; visibility: hidden;">
     <form>
-      <label>
-                            <input id = "enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked>
-                            Only check work submitted before assignment deadline</label>
+      <fieldset>
+      <input id="enforceDeadline" type="checkbox" name="enforceDeadline" value="enforceDeadline" class="big-checkbox" checked>
+      <label for="enforceDeadline">Only check work submitted before</label> <span id="dl_disp"></span>
+      </fieldset>
       <input id="autogradesubmit" type="submit" class="btn btn-primary" value="Autograde and Display Totals" />
       <!--<button id="autogradebutton"  class="list-group-item" onclick="function(event){event.preventDefault(); autoGrade(event);}">Autograde</button>-->
-
     </form>
+    <strong>Warning</strong> Autograde does not support multiple selections yet.
   </div>
 
   <div id="autogradingprogress">
@@ -85,31 +76,58 @@
     {{pass}}
   </div>
 
-  <button id="releasebutton" style="text-align: center; visibility: hidden;" class="list-group-item btn btn-success" onclick="toggle_release_grades();">Release Grades</button>
+  <button id="releasebutton" style="text-align: center; visibility: hidden;" class="btn btn-info" onclick="toggle_release_grades();">Release Grades</button>
 
 
 </div>
 
 
 
-<div id="rightsideGradingTab" class="col-md-7" style="margin-top: 50px; visibility: hidden">
+<div id="rightsideGradingTab" class="col-md-7" style="margin-top: 50px; visibility: visible">
 
   <div id="outerRightDiv">
     <h4 id="rightTitle"></h4>
 
-    <div id="questiondisplay">Question Display</div>
+    <div id="questiondisplay">Grading Instructions</div>
 
     <div style="display:none" id="shortanswerresponse"></div>
+    <div id="initialtext">
+        <h4 style="color: red;">The Grading interface Changed, Please Read</h4>
+        For <strong>Manual</strong> grading:
+        <ol>
+          <li>Begin by Selecting Chapter or Assignment mode for grading. Chapter
+          Mode will let you look at and/or grade any exercise by any student in
+          the chapter you will choose in step 2.  Assignment mode lets you grade
+          the exercises for an assignment you have created.</li>
+          <li>Select the Chapter or Assignment</li>
+          <li>Select the question(s) you want to grade (or Select All)</li>
+          <li>Select the student(s) you want to grade (or Select All)</li>
+        </ol>
 
-    <div id="gradingform">
-      <form>
-        <label for="input-grade">Grade</label>
-        <input id="input-grade" type="text" class="form-control" value="" />
-        <label for="input-comments">Comments</label>
-        <input id="input-comments" type="text" class="form-control" value="" />
-        <input type="submit" value="Save Grade" class="btn btn-primary" />
-      </form>
-      <button class="btn btn-default next" type="button">Save and next</button></div>
+        <p>If you don't use the Runestone assignment interface but want to check your
+        students work, then you can select a Chapter, one or more questions, and one
+        or more students to check their work.  This is also useful if a student has a
+        question and you want to review what they have done so far.</p>
+
+        <p>To <strong>Autograde</strong> you typically will <strong>only</strong> select an assignment
+        and click the autograde button. If you need to "touch up" some grades for a
+        particular student with special circumstances, you can select that student and
+        regrade the whole assignment, or you can autograde just one exercise for one
+        student by selecting a question and student. You can click on Autograde at any
+        point.</p>
+
+
+      <p>
+        Note 1:  All the dropdowns Assignments/Chapters, Questions and Students are searchable.
+      </p>
+      <p>
+        Note 2:  If you have selected multiple questions or students, the grades and
+        comments will automatically save to the server as you move from field to
+        field.  The background will change to a very light green as your
+        indication the save was successful.
+      </p>
+    </div>
+
   </div>
 
 
@@ -160,6 +178,29 @@
     saveManualTotal();
     return false;
   });
+
+// code to select or unselect all students
+
+$("#allquestioncb").click(function(){
+    if($("#allquestioncb").is(":checked") ){
+        $("#questionselector > option").prop("selected","selected");
+        $("#questionselector").trigger("change");
+    }else{
+        $("#questionselector > option").removeAttr("selected");
+         $("#questionselector").trigger("change");
+     }
+});
+
+$("#allstudentcb").click(function(){
+  if($("#allstudentcb").is(":checked") ){
+      $("#studentselector > option").prop("selected","selected");
+      $("#studentselector").trigger("change");
+  }else{
+      $("#studentselector > option").removeAttr("selected");
+       $("#studentselector").trigger("change");
+   }
+});
+
 </script>
 
 

@@ -374,12 +374,14 @@ def _get_practice_data(user, timezoneoffset):
             if practice_graded == 1:
                 if spacing == 1:
                     total_possible_points = practice_settings.day_points * max_days
-                    points_received = day_points * practice_completion_count
+                    points_received = round(day_points * practice_completion_count, 2)
                 else:
                     total_possible_points = (
                         practice_settings.question_points * max_questions
                     )
-                    points_received = question_points * practice_completion_count
+                    points_received = round(
+                        question_points * practice_completion_count, 2
+                    )
 
             # Calculate the number of questions left for the student to practice today to get the completion point.
             if spacing == 1:
@@ -646,17 +648,36 @@ def record_grade():
     if "acid" not in request.vars or "sid" not in request.vars:
         return json.dumps({"success": False, "message": "Need problem and user."})
 
-    score_str = request.vars.get("grade", "").strip()
-    if score_str == "":
-        score = 0
+    if "grade" in request.vars:
+        has_score = True
+        score_str = request.vars.get("grade", "").strip()
+        if score_str == "":
+            score = 0
+        else:
+            try:
+                score = float(score_str)
+            except ValueError as e:
+                logger.error("Bad Score: {} - Details: {}".format(score_str, e))
+                return json.dumps({"response": "not replaced"})
     else:
-        try:
-            score = float(score_str)
-        except ValueError as e:
-            logger.error("Bad Score: {} - Details: {}".format(score_str, e))
-            return json.dumps({"response": "not replaced"})
+        has_score = False
+        score_str = ""
+
     comment = request.vars.get("comment", None)
-    if score_str != "" or ("comment" in request.vars and comment != ""):
+
+    updates = dict(
+        sid=request.vars["sid"],
+        div_id=request.vars["acid"],
+        course_name=auth.user.course_name,
+    )
+
+    if has_score:
+        updates["score"] = score
+
+    if comment is not None:
+        updates["comment"] = comment
+
+    if has_score or comment:
         try:
             db.question_grades.update_or_insert(
                 (
@@ -664,11 +685,7 @@ def record_grade():
                     & (db.question_grades.div_id == request.vars["acid"])
                     & (db.question_grades.course_name == auth.user.course_name)
                 ),
-                sid=request.vars["sid"],
-                div_id=request.vars["acid"],
-                course_name=auth.user.course_name,
-                score=score,
-                comment=comment,
+                **updates
             )
         except IntegrityError:
             logger.error(
@@ -1228,11 +1245,10 @@ def practice():
 
         # This replacement is to render images
         question.htmlsrc = question.htmlsrc.replace(
-            'src="../_static/', 'src="../static/' + course["course_name"] + "/_static/"
+            'src="../_static/', 'src="' + get_course_url("_static/")
         )
         question.htmlsrc = question.htmlsrc.replace(
-            "../_images",
-            "/{}/static/{}/_images".format(request.application, course.course_name),
+            "../_images/", get_course_url("_images/")
         )
 
         autogradable = 1

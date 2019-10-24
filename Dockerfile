@@ -11,7 +11,6 @@ LABEL authors="@bnmnetp,@vsoch,@yarikoptic"
 ARG WEB2PY_PATH=/srv/web2py
 ARG WEB2PY_APPS_PATH=${WEB2PY_PATH}/applications
 ARG WEB2PY_PORT=8080
-ARG DBHOST=db
 
 # And export some as env vars so they could be available at run time
 ENV WEB2PY_PATH=${WEB2PY_PATH}
@@ -70,13 +69,6 @@ RUN useradd -s /bin/bash -M -g staff --home-dir ${WEB2PY_PATH} runestone && \
     mkdir -p /srv
 
 # Install additional components
-# RUN git clone https://github.com/web2py/web2py ${WEB2PY_PATH} && \
-#     cd ${WEB2PY_PATH} && \
-#     git submodule update --init --recursive
-
-# Instead of blinfly clone the master branch of web2py (not well tested), we
-# should better stick to the source code distributed under the download section
-# of the official web2py website. 
 RUN wget https://mdipierro.pythonanywhere.com/examples/static/web2py_src.zip && \
     unzip web2py_src.zip && \
     rm -f web2py_src.zip && \
@@ -96,7 +88,6 @@ RUN mkdir -p private && \
     # pip3 install -r requirements-test.txt && \
     pip3 install uwsgi uwsgitop && \
     rm -rf ${WEB2PY_PATH}/.cache/* && \
-    cp ${RUNESTONE_PATH}/scripts/run_scheduler.py ${WEB2PY_PATH}/run_scheduler.py && \
     cp ${RUNESTONE_PATH}/scripts/routes.py ${WEB2PY_PATH}/routes.py
 
 WORKDIR ${WEB2PY_PATH}
