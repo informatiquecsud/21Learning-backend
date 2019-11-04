@@ -314,8 +314,11 @@ course.show_instructors.coursename:
 course.show_instructors.%:
 	echo $
 
+
+course.ins.new-course-name:
 course.ins.%:
 	echo "INSERT INTO courses (course_name, base_course, term_start_date, login_required, python3) VALUES ('$*', '$*', '$(shell date -I)', 'T', 'T');" | $(RUN_SQL)
+course.del.course-to-delete:
 course.del.%:
 	echo "DELETE FROM courses WHERE course_name='$*';" | $(RUN_SQL)
 
@@ -344,6 +347,18 @@ course.push-all.%:
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build-all.$*
+
+# TODO: use a better strategy => webhooks from gitlab ... requires a special api
+# on the server
+course.push-all.einfachinformatik-prog.gym:
+course.push-all.einfachinformatik-prog.7-9:
+course.push-all.einfachinformatik-prog.%:
+	echo "Pushing branch $* of einfachinformatik-prog to $(RUNESTONE_HOST) ..."
+	$(RSYNC) -raz books/einfachinformatik-prog/* $(REMOTE):$(SERVER_DIR)/books/einfachinformatik-prog-$* \
+		--exclude=build \
+		--exclude=published
+	$(SSH) 'cd $(SERVER_DIR)/books/einfachinformatik-prog-$* && cp -f pavement-dockerserver.py pavement.py'
+	make remote.course.build-all.einfachinformatik-prog-$*
 
 live.course.push.:
 live.course.build.:
@@ -417,7 +432,7 @@ user.clean_activity.%:
 	@echo "DELETE FROM user_sub_chapter_progress WHERE user_id IN (SELECT id FROM auth_user WHERE username = '$*')" | $(RUN_SQL)
 	
 user.init:
-	$(RSMANAGE_I) inituser
+	$(RSMANAGE) inituser
 
 passwd:
 	docker exec -i $(RUNESTONE_CONTAINER_ID) rsmanage resetpw
