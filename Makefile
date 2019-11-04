@@ -334,8 +334,9 @@ course.push.%:
 		--exclude=build \
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
-	make remote.course.build.$*
-	
+	make remote.course.build.$* KEEP_EXAMS=$(KEEP_EXAMS)
+	@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+
 course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
@@ -346,7 +347,8 @@ course.push-all.%:
 		--exclude=build \
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
-	make remote.course.build-all.$*
+	make remote.course.build-all.$* KEEP_EXAMS=$(KEEP_EXAMS)
+	@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -686,7 +688,7 @@ exams.clean.%:
 exams.push.course_name:
 exams.push.doi:
 exams.push.%:
-	make course.push-all.$*
+	make course.push-all.$* KEEP_EXAMS=true
 	$(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens/ && mv exa-$(EXAM).html $(EXAM_CODE).html'
 	# make remote.exams.setup-code.$* REMOTE_ARGS="EXAM_CODE=$(EXAM_CODE)
 	# EXAM=$(EXAM)"
