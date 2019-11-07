@@ -13,8 +13,6 @@ ifdef USE_OVH
 	ENV_NAME=ovh
 endif
 
-
-
 REMOTE=$(SSH_USER)@$(SSH_HOST)
 SSH_OPTIONS=-o 'StrictHostKeyChecking no' -p $(SSH_PORT)
 SSH = ssh $(SSH_OPTIONS) $(SSH_USER)@$(SSH_HOST)
@@ -32,6 +30,7 @@ RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
 PGADMIN_CONTAINER_ID = $(shell docker ps -qf "name=_pgadmin")
 HASURA_CONTAINER_ID = $(shell docker ps -qf "name=_hasura")
+REMOTE_DB_CONTAINER_ID = $(shell $(SSH) 'docker ps -qf "name=_db"')
 
 DATE_FMT = "%Y-%m-%d_%H:%M:%S"
 DATETIME = $(shell date +$(DATE_FMT))
@@ -41,6 +40,7 @@ RSMANAGE_T = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
 RSMANAGE_I = docker exec -t $(RUNESTONE_CONTAINER_ID) rsmanage
 
 RUN_SQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+REMOTE_RUN_SQL = $(SSH) 'docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)'
 RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_RESTORE = docker exec -i $(DB_CONTAINER_ID) pg_restore $(POSTGRES_DB)  -U $(POSTGRES_USER) 
@@ -559,8 +559,10 @@ db.restore.%:
 db.restore.last:
 	make db.restore.$(shell ls backup/db -1t | head -1)
 
-db.restore.from-remote: remote.db.backup db.get-backup db.restore.last
 
+db.backup.from-remote: remote.db.backup db.get-backup
+
+db.restore.from-remote: db.backup.from-remote db.restore.last
 
 db.get-backup: 
 	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress
@@ -699,3 +701,10 @@ doc.exams.push:
 	@echo "make exams.push.doi EXAM=1-A EXAM_CODE=HKJHGZ"
 doc.exams.clean:
 	@echo "make exams.clean.doi EXAM=1-A EXAM_CODE=HKJHGZ"
+
+# before doing that, generate the scores.sql file with something like
+# 	xlsx2csv data/exams/exa1/exa1C-1gy8.xlsx -s 2 --ignoreempty | python scores2sql.py > data/exams/scores.tmp.sql
+# 		the -s 2 takes the scores out of the sheet #2
+exams.push.scores:
+	cat data/exams/scores.tmp.sql | $(REMOTE_RUN_SQL)
+
