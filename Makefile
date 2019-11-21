@@ -31,6 +31,7 @@ DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
 PGADMIN_CONTAINER_ID = $(shell docker ps -qf "name=_pgadmin")
 HASURA_CONTAINER_ID = $(shell docker ps -qf "name=_hasura")
 REMOTE_DB_CONTAINER_ID = $(shell $(SSH) 'docker ps -qf "name=_db"')
+REMOTE_RUNESTONE_CONTAINER_ID = $(shell $(SSH) 'docker ps -qf "name=_runestone"')
 
 DATE_FMT = "%Y-%m-%d_%H:%M:%S"
 DATETIME = $(shell date +$(DATE_FMT))
@@ -302,17 +303,17 @@ course.build-all.%:
 course.add_instructor.oxocard101:
 course.add_instructor.overview:
 course.add_instructor.doi:
+course.add_instructor.concepts-programmation:
 course.add_instructor.coursename:
 course.add_instructor.%:
 	@read -p "Username to add: " user_name; \
 	echo "INSERT INTO course_instructor (course, instructor) \
 				SELECT courses.id, auth_user.id FROM courses, auth_user \
-				WHERE username = '$$user_name' AND courses.course_name = '$*';" \
+				WHERE username = '$(USER)' AND courses.course_name = '$*';" \
 					| $(RUN_SQL)
 
 course.show_instructors.coursename:
 course.show_instructors.%:
-	echo $
 
 
 course.ins.new-course-name:
@@ -327,6 +328,7 @@ course.del.%:
 course.push.oxocard101:
 course.push.overview:
 course.push.doi:
+course.push.concepts-programmation:
 course.push.coursename:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -340,6 +342,7 @@ course.push.%:
 course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
+course.push-all.concepts-programmation:
 course.push-all.coursename:
 course.push-all.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -448,7 +451,7 @@ class.csv.load:
 %.class.csv.load: data/%.csv
 	# créer le groupe dans la base de données
 	# make class.create.$*
-	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course 1ecg7 --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
+	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course $(COURSE) --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
 	docker cp $(RUNESTONE_CONTAINER_ID):/srv/web2py/tmp-passwords.csv data/passwords-$*.csv
 
 class.empty:
@@ -695,7 +698,7 @@ exams.push.%:
 	# make remote.exams.setup-code.$* REMOTE_ARGS="EXAM_CODE=$(EXAM_CODE)
 	# EXAM=$(EXAM)"
 	# must be done to prevent other exams to be visible
-	$(SSH) rm -f runestone-server/books/$*/published/$*/examens/exa*.html
+	#$(SSH) rm -f runestone-server/books/$*/published/$*/examens/exa*.html
 	
 doc.exams.push:
 	@echo "make exams.push.doi EXAM=1-A EXAM_CODE=HKJHGZ"
@@ -708,3 +711,50 @@ doc.exams.clean:
 exams.push.scores:
 	cat data/exams/scores.tmp.sql | $(REMOTE_RUN_SQL)
 
+
+course.time_spent:
+	@echo " \
+	SELECT \
+		sid, \
+		first_name, \
+		last_name, \
+		course_id, \
+		max(timestamp) - min(timestamp) AS time_spent \
+	FROM \
+		useinfo_course_user_grades \
+	WHERE \
+		div_id LIKE '$(SECTION)' \
+		AND course_id LIKE '$(COURSE)' \
+	GROUP BY \
+		sid, \
+		course_id, \
+		first_name, \
+		last_name \
+	HAVING \
+		max(timestamp) - min(timestamp) > '00:00:00' \
+	ORDER BY \
+		time_spent ASC;" | $(REMOTE_RUN_SQL)
+
+
+
+#######################################################################
+# Quick update the components from local repo
+#######################################################################
+update-components.doi:
+update-components.course-name:
+update-components.%:
+	# sync dev components repo to 21learning server
+	@rsync -raz  ~/runestone-components/runestone/ $(REMOTE):$(SERVER_DIR)/tmp-runestone-components/ --progress
+	# sync the remote repo with the python site-packages inside runestone container
+	$(SSH) 'docker exec $(REMOTE_RUNESTONE_CONTAINER_ID) rsync -raz applications/runestone/tmp-runestone-components/ /usr/local/lib/python3.7/site-packages/runestone --progress'
+	# rebuild the course
+	$(SSH) 'cd $(SERVER_DIR) && make course.build-all.$*'
+
+
+#######################################################################
+# Pull remote dir into local dir
+#######################################################################
+pull.remote-dir:
+pull.data:
+pull.%:
+	$(RSYNC) -raz $(REMOTE):$(SERVER_DIR)/$*/* ./$* --progress
