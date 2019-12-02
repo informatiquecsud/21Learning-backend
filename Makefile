@@ -18,10 +18,11 @@ SSH_OPTIONS=-o 'StrictHostKeyChecking no' -p $(SSH_PORT)
 SSH = ssh $(SSH_OPTIONS) $(SSH_USER)@$(SSH_HOST)
 SERVER_DIR=~/runestone-server
 SERVER_COMPONENTS_DIR=/RunestoneComponents
-COMPONENTS_DIR=../RunestoneComponents
+COMPONENTS_DIR=~/runestone-components/
 RSYNC_BASE_OPTIONS= -e 'ssh -o StrictHostKeyChecking=no -p $(SSH_PORT)' --progress
-RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=stats --exclude=__pycache__ --delete
-RSYNC=rsync $(RSYNC_OPTIONS)
+RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=stats --exclude=__pycache__
+RSYNC_KEEP=rsync $(RSYNC_OPTIONS)
+RSYNC=rsync $(RSYNC_OPTIONS) --delete
 TIME = $(shell date +%Y-%m-%d_%Hh%M)
 DOTENV_FILE = .env.$(ENV_NAME)
 
@@ -289,8 +290,9 @@ course.build.oxocard101:
 course.build.overview:
 course.build.doi:
 course.build.%:
-	echo $(RUNESTONE_CONTAINER_ID)
+	@echo $(RUNESTONE_CONTAINER_ID)
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
+	@cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 	
 # Course management
 course.build-all.coursename:
@@ -299,6 +301,9 @@ course.build-all.overview:
 course.build-all.doi:
 course.build-all.%:
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
+	@docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
+	@cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
+	
 	
 course.add_instructor.oxocard101:
 course.add_instructor.overview:
@@ -337,7 +342,7 @@ course.push.%:
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build.$* KEEP_EXAMS=$(KEEP_EXAMS)
-	@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 
 course.push-all.oxocard101:
 course.push-all.overview:
@@ -351,7 +356,7 @@ course.push-all.%:
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build-all.$* KEEP_EXAMS=$(KEEP_EXAMS)
-	@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -365,12 +370,6 @@ course.push-all.einfachinformatik-prog.%:
 	$(SSH) 'cd $(SERVER_DIR)/books/einfachinformatik-prog-$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build-all.einfachinformatik-prog-$*
 
-live.course.push.:
-live.course.build.:
-live.%:
-	watchmedo shell-command --patterns="*.rst;*.py" --recursive  --command='make $*'
-
-		
 	
 # another way of doing that kind of thing is with the -c flag of bash
 # runestone-rebuild-oxocard101:
@@ -758,3 +757,8 @@ pull.remote-dir:
 pull.data:
 pull.%:
 	$(RSYNC) -raz $(REMOTE):$(SERVER_DIR)/$*/* ./$* --progress
+
+
+update-activecode-js-local:
+	docker cp  ~/runestone-components/runestone/activecode/js/activecode.js server2_runestone_1:/srv/web2py/applications/runestone/books/doi/published/doi/_static/activecode.js
+
