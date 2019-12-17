@@ -20,12 +20,15 @@ SERVER_DIR=~/runestone-server
 SERVER_COMPONENTS_DIR=/RunestoneComponents
 COMPONENTS_DIR=~/runestone-components/
 RSYNC_BASE_OPTIONS= -e 'ssh -o StrictHostKeyChecking=no -p $(SSH_PORT)' --progress
-RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=stats --exclude=__pycache__
+RSYNC_OPTIONS= $(RSYNC_BASE_OPTIONS) --exclude=.git --exclude=venv --exclude=ubuntu --exclude=stats --exclude=__pycache__ --exclude=junk --exclude=errors
 RSYNC_KEEP=rsync $(RSYNC_OPTIONS)
 RSYNC=rsync $(RSYNC_OPTIONS) --delete
 TIME = $(shell date +%Y-%m-%d_%Hh%M)
 DOTENV_FILE = .env.$(ENV_NAME)
 
+DB_GIT_BACKUP_DIR = backup/db/git
+DB_BACKUP_GIT_REPO = git@bitbucket.org:donnerc/21learning-db-backups.git
+DB_BACKUP_GIT = cd $(DB_GIT_BACKUP_DIR) && git
 
 RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
@@ -140,18 +143,25 @@ service.down.%:
 service.stop.service-name:
 service.stop.%:
 	$(COMPOSE) stop $*
+service.start.service-name:
+service.start.%:
+	$(COMPOSE) start $*
 service.rm.service-name:
 service.rm.%:
 	$(COMPOSE) rm -f  $*
 service.logs.service-name:
 service.logs.%:
 	$(COMPOSE) logs -f  $*
-service.restart.service-name:
-service.restart.%: 
+service.full-restart.service-name:
+service.full-restart.%: 
 	make service.stop.$* 
 	make service.rm.$*
 	make service.up.$*
 	make service.logs.$*
+service.full-start.service-name:
+service.full-start.%: 
+	make service.stop.$* 
+	make service.start.$*
 
 ssh:
 	$(SSH)  -F ./.ssh.config
@@ -301,7 +311,7 @@ course.build-all.overview:
 course.build-all.doi:
 course.build-all.%:
 	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
-	@docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
+	# @docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 	@cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 	
 	
@@ -537,9 +547,31 @@ users.ls:
 env.show:
 	env | grep RUNESTONE
 
-db.backup:
+db.backup: db.git.backup
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+
+
+db.git.init:
+	git clone $(DB_BACKUP_GIT_REPO) $(DB_GIT_BACKUP_DIR)
+	$(DB_BACKUP_GIT) checkout master
+
+db.git.checkout.master:
+db.git.checkout.branchname:
+db.git.checkout.%:
+	$(DB_BACKUP_GIT) checkout $%
+
+db.git.diff:
+	$(DB_BACKUP_GIT) diff HEAD HEAD^
+
+	
+
+db.git.backup:
+	@$(PG_DUMP) > $(DB_GIT_BACKUP_DIR)/runestone-backup.sql
+	cd $(DB_GIT_BACKUP_DIR)/ && git add . && git commit -m "backup $(DATETIME)" && git push
+
+
 
 test.pipe:
 	echo "salut" | docker exec -i $(DB_CONTAINER_ID) 'cat - > /home/message'
@@ -760,5 +792,7 @@ pull.%:
 
 
 update-activecode-js-local:
-	docker cp  ~/runestone-components/runestone/activecode/js/activecode.js server2_runestone_1:/srv/web2py/applications/runestone/books/doi/published/doi/_static/activecode.js
+	# docker cp  ~/runestone-components/runestone/activecode/js/activecode.js
+	# server2_runestone_1:/srv/web2py/applications/runestone/books/doi/published/doi/_static/activecode.js
+	cp -f ~/runestone-components/runestone/activecode/js/activecode.js books/doi/published/doi/_static/
 
