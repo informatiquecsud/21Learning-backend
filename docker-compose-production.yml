@@ -39,3 +39,6 @@ services:
       LETSENCRYPT_EMAIL: "cedonner@gmail.com"
     volumes:
       - ./pgadmin/servers.json:/servers.json
+
+  redis:
+    network_mode: "bridge"
