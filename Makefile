@@ -104,6 +104,7 @@ list:
 	@echo "HIDORA_SSH_PORT=$(HIDORA_SSH_PORT)" >> $(DOTENV_FILE)
 	@echo "USE_HIDORA=$(USE_HIDORA)" >> $(DOTENV_FILE)
 	@echo "HASURA_ADMIN_SECRET_KEY=$(HASURA_ADMIN_SECRET_KEY)" >> $(DOTENV_FILE)
+	@echo "HASURA_GRAPHQL_JWT_SECRET=$(HASURA_GRAPHQL_JWT_SECRET)" >> $(DOTENV_FILE)
 
 push: .env.build
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
@@ -547,7 +548,7 @@ users.ls:
 env.show:
 	env | grep RUNESTONE
 
-db.backup: db.git.backup
+db.backup:
 	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
 
