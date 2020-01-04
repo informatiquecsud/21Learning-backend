@@ -1,31 +1,37 @@
 import jwt
-from time import time
+import datetime
 from random import randint
 
-random_key = ''.join([chr(randint(65, 120)) for _ in range(64)])
+
+def get_random_char():
+    code = randint(65, 120)
+    while code in range(91, 97):
+        code = randint(65, 120)
+    return chr(code)
+
+
+random_key = ''.join([get_random_char() for _ in range(64)])
+secret_key = 'WnpAGcjSNKJXaKaGUhmnJLmweCllXKtqTCZrreRwnmHTsJIEHMUhYYRgcMuBVmCN'
 
 
 payload = {
     "sub": "1234567890",
     "name": "Cédric Donner",
     "admin": True,
-    "iat": time() + 365 * 24 * 3600,
-    "https://hasura.io/jwt/claims": {
+    "iat": datetime.datetime.utcnow(),
+    "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=365 * 24 * 3600),
+    "https://21-learning.com/jwt/claims": {
         "x-hasura-allowed-roles": [
-            "teacher-1gy5",
-            "teacher-1gy7",
-            "teacher-1gy8",
-            "teacher-1gy11",
-            "teacher-1ecg7",
+            "teacher",
             "student",
             "admin"
         ],
-        "x-hasura-default-role": "user",
+        "x-hasura-default-role": "teacher",
         "x-hasura-user-id": "156",
         "x-hasura-org-id": "1"
     }
 }
-encoded_jwt = jwt.encode(payload, 'secret', algorithm='HS512')
+encoded_jwt = jwt.encode(payload, secret_key, algorithm='HS512')
 
-print('generated secret key:', random_key)
+print('generated secret key:', secret_key)
 print('generated token:', encoded_jwt)

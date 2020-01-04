@@ -103,8 +103,11 @@ list:
 	@echo "HIDORA_SSH_HOST=$(HIDORA_SSH_HOST)" >> $(DOTENV_FILE)
 	@echo "HIDORA_SSH_PORT=$(HIDORA_SSH_PORT)" >> $(DOTENV_FILE)
 	@echo "USE_HIDORA=$(USE_HIDORA)" >> $(DOTENV_FILE)
+	@echo "USE_OVH=$(USE_OVH)" >> $(DOTENV_FILE)
 	@echo "HASURA_ADMIN_SECRET_KEY=$(HASURA_ADMIN_SECRET_KEY)" >> $(DOTENV_FILE)
-	@echo "HASURA_GRAPHQL_JWT_SECRET=$(HASURA_GRAPHQL_JWT_SECRET)" >> $(DOTENV_FILE)
+	@echo 'HASURA_GRAPHQL_JWT_SECRET=$(HASURA_GRAPHQL_JWT_SECRET)' >> $(DOTENV_FILE)
+	echo '$(HASURA_GRAPHQL_JWT_SECRET)'
+	#$(shell echo 'HASURA_GRAPHQL_JWT_SECRET=\'(cat auth/key.json)\'' >> $(DOTENV_FILE)) 
 
 push: .env.build
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
@@ -160,7 +163,7 @@ service.full-restart.%:
 	make service.up.$*
 	make service.logs.$*
 service.full-start.service-name:
-service.full-start.%: 
+service.restart.%: 
 	make service.stop.$* 
 	make service.start.$*
 
@@ -459,6 +462,7 @@ class.csv.ls:
 	cat $<
 class.csv.load:
 %.class.csv.load: data/%.csv
+class.csv.load.%: data/%.csv
 	# créer le groupe dans la base de données
 	# make class.create.$*
 	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course $(COURSE) --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
@@ -503,8 +507,8 @@ class.delete.%:
 	echo "DELETE FROM auth_group_validity WHERE auth_group_id = $*;" | $(RUN_SQL) && \
 	echo "DELETE FROM auth_group WHERE id = $*;" | $(RUN_SQL)
 
-class.add_to_course.classmake name:	
-remote.class.add_to_course.classmake name:	
+class.add_to_course.class:	
+remote.class.add_to_course.class:	
 class.add_to_course.%:
 	make courses.ls
 	@read -p "Course id: " course_id; \
@@ -797,3 +801,6 @@ update-activecode-js-local:
 	# server2_runestone_1:/srv/web2py/applications/runestone/books/doi/published/doi/_static/activecode.js
 	cp -f ~/runestone-components/runestone/activecode/js/activecode.js books/doi/published/doi/_static/
 
+
+crontab.save:
+	$(SSH) crontab -l > backup/crontab.txt

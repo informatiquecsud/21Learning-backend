@@ -10,6 +10,7 @@ services:
       - "db"
     network_mode: "bridge"
     restart: always
+    env_file: .env
     environment:
       HASURA_GRAPHQL_DATABASE_URL: "postgres://runestone:${POSTGRES_PASSWORD}@db/runestone"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
