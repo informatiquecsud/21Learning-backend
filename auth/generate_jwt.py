@@ -16,18 +16,17 @@ secret_key = 'WnpAGcjSNKJXaKaGUhmnJLmweCllXKtqTCZrreRwnmHTsJIEHMUhYYRgcMuBVmCN'
 
 payload = {
     "sub": "1234567890",
-    "name": "Cédric Donner",
+    "name": "Brice Canvel",
     "admin": True,
     "iat": datetime.datetime.utcnow(),
     "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=365 * 24 * 3600),
     "https://21-learning.com/jwt/claims": {
         "x-hasura-allowed-roles": [
             "teacher",
-            "student",
-            "admin"
+            "student"
         ],
         "x-hasura-default-role": "teacher",
-        "x-hasura-user-id": "156",
+        "x-hasura-user-id": "267",
         "x-hasura-org-id": "1"
     }
 }

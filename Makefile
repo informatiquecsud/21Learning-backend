@@ -88,6 +88,7 @@ list:
 # TODO: This .env.build stuff has to be eventually wiped off, an other way of doing it
 # should be found ...
 .env.build:
+	@echo $(DOTENV_FILE)
 	@if test -z "$(RUNESTONE_HOST)"; then echo "variable HOST not defined"; exit 1; fi
 	@if test -z "$(POSTGRES_PASSWORD)"; then echo "variable POSTGRES_PASSWORD not defined"; exit 1; fi
 	@if test -z "$(WEB2PY_PASSWORD)"; then echo "variable WEB2PY_PASSWORD not defined"; exit 1; fi
@@ -106,7 +107,8 @@ list:
 	@echo "USE_OVH=$(USE_OVH)" >> $(DOTENV_FILE)
 	@echo "HASURA_ADMIN_SECRET_KEY=$(HASURA_ADMIN_SECRET_KEY)" >> $(DOTENV_FILE)
 	@echo 'HASURA_GRAPHQL_JWT_SECRET=$(HASURA_GRAPHQL_JWT_SECRET)' >> $(DOTENV_FILE)
-	echo '$(HASURA_GRAPHQL_JWT_SECRET)'
+	@echo 'WEB2PY_PRIVATE_KEY=$(WEB2PY_PRIVATE_KEY)' >> $(DOTENV_FILE)
+	#echo '$(HASURA_GRAPHQL_JWT_SECRET)'
 	#$(shell echo 'HASURA_GRAPHQL_JWT_SECRET=\'(cat auth/key.json)\'' >> $(DOTENV_FILE)) 
 
 push: .env.build
@@ -162,7 +164,7 @@ service.full-restart.%:
 	make service.rm.$*
 	make service.up.$*
 	make service.logs.$*
-service.full-start.service-name:
+service.restart.service-name:
 service.restart.%: 
 	make service.stop.$* 
 	make service.start.$*
@@ -196,6 +198,9 @@ logs:
 	$(COMPOSE) logs runestone
 logsf:
 	$(COMPOSE) logs -f runestone
+
+dashboard.sync:
+	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress
 
 
 db-rm:
@@ -325,7 +330,6 @@ course.add_instructor.doi:
 course.add_instructor.concepts-programmation:
 course.add_instructor.coursename:
 course.add_instructor.%:
-	@read -p "Username to add: " user_name; \
 	echo "INSERT INTO course_instructor (course, instructor) \
 				SELECT courses.id, auth_user.id FROM courses, auth_user \
 				WHERE username = '$(USER)' AND courses.course_name = '$*';" \
@@ -461,11 +465,10 @@ class.csv.ls:
 %.class.csv.ls: data/%.csv
 	cat $<
 class.csv.load:
-%.class.csv.load: data/%.csv
 class.csv.load.%: data/%.csv
 	# créer le groupe dans la base de données
 	# make class.create.$*
-	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course $(COURSE) --class-name $(shell echo $* | tr "[:lower:]" "[:upper:]")
+	$(RSMANAGE_T) add-class --csvfile $(RUNESTONE_DIR)/$< --course $(COURSE) --class-name '$(shell echo $* | tr "[:lower:]" "[:upper:]")'
 	docker cp $(RUNESTONE_CONTAINER_ID):/srv/web2py/tmp-passwords.csv data/passwords-$*.csv
 
 class.empty:
