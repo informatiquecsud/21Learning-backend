@@ -16,7 +16,6 @@ secret_key = 'WnpAGcjSNKJXaKaGUhmnJLmweCllXKtqTCZrreRwnmHTsJIEHMUhYYRgcMuBVmCN'
 
 payload = {
     "sub": "1234567890",
-    "name": "Brice Canvel",
     "admin": True,
     "iat": datetime.datetime.utcnow(),
     "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=365 * 24 * 3600),
@@ -26,11 +25,12 @@ payload = {
             "student"
         ],
         "x-hasura-default-role": "teacher",
-        "x-hasura-user-id": "267",
+        "x-hasura-user-id": "157",
         "x-hasura-org-id": "1"
     }
 }
 encoded_jwt = jwt.encode(payload, secret_key, algorithm='HS512')
 
 print('generated secret key:', secret_key)
-print('generated token:', encoded_jwt)
+print('generated token:')
+print(encoded_jwt)

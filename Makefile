@@ -111,7 +111,7 @@ list:
 	#echo '$(HASURA_GRAPHQL_JWT_SECRET)'
 	#$(shell echo 'HASURA_GRAPHQL_JWT_SECRET=\'(cat auth/key.json)\'' >> $(DOTENV_FILE)) 
 
-push: .env.build
+push:
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
 		--progress \
 		--exclude=.git \
@@ -123,7 +123,7 @@ push: .env.build
 		--exclude=data/pass* \
 		--exclude=books
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
-	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env'
+	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
 
 service.up.service:

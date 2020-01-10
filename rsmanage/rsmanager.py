@@ -539,8 +539,9 @@ def inituser(
 @cli.command()
 @click.option("--username", help="Username, must be unique")
 @click.option("--password", help="password - plaintext -- sorry")
+@click.option("--group", help="group of the student")
 @pass_config
-def resetpw(config, username, password):
+def resetpw(config, username, password, group=None):
     """Utility to change a users password. Useful If they can't do it through the normal mechanism"""
     userinfo = {}
     userinfo["username"] = username or click.prompt("Username")

@@ -302,8 +302,13 @@ auth.define_tables(username=True, signature=False, migrate=table_migrate_prefix 
 ## configure email
 mail = auth.settings.mailer
 mail.settings.server = "logging" or "smtp.gmail.com:587"
-mail.settings.sender = "you@gmail.com"
-mail.settings.login = "username:password"
+mail.settings.sender = "info.21learning@gmail.com"
+mail.settings.login = "info.21learning:damaris$168"
+
+### new mail configuration
+mail.settings.server = "logging" or "smtp.gmail.com:587"
+mail.settings.sender = "info.21learning@gmail.com"
+mail.settings.login = "cedonner@gmail.com:jtolwtprmscfycip"
 
 ## configure auth policy
 auth.settings.registration_requires_verification = False
