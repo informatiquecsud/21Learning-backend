@@ -75,7 +75,9 @@ COMPOSE = docker-compose -f docker-compose.yml $(COMPOSE_PGADMIN) $(COMPOSE_OPTI
 howto-load-dotenv:
 	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
 howto-load-dotenv.ovh:
-	@echo 'set -a; source .env.ovh set +a' | clip.exe
+howto-load-dotenv.hidora:
+howto-load-dotenv.%:
+	@echo 'set -a; source .env.$* set +a' | clip.exe
 
 echo-compose-options:
 	@echo 'Compose options is: ' $(COMPOSE_OPTIONS)
@@ -126,6 +128,10 @@ push:
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
 
+services.config:
+	$(COMPOSE) config
+
+
 service.up.service:
 service.up.db:
 service.up.runestone:
@@ -169,7 +175,7 @@ service.restart.%:
 	make service.stop.$* 
 	make service.start.$*
 
-ssh:
+ssh:	
 	$(SSH)  -F ./.ssh.config
 
 start:
@@ -346,12 +352,16 @@ course.del.course-to-delete:
 course.del.%:
 	echo "DELETE FROM courses WHERE course_name='$*';" | $(RUN_SQL)
 
-
+course.vuepress.push.einfach-informatik-zusatz-material:
+course.vuepress.push.%:
+	$(SSH) 'mkdir -p $(SERVER_DIR)/books/$*/published/$*'
+	$(RSYNC) -raz books/$*/build/html/* $(REMOTE):$(SERVER_DIR)/books/$*/published/$*
 	
 course.push.oxocard101:
 course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
+course.push.workshop-short:
 course.push.coursename:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -367,14 +377,16 @@ course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
 course.push-all.coursename:
-course.push-all.%:
+course.push-all.%: 
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
 	$(RSYNC) -raz books/$* $(REMOTE):$(SERVER_DIR)/books/ \
 		--exclude=build \
 		--exclude=published
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build-all.$* KEEP_EXAMS=$(KEEP_EXAMS)
-	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd
+	#$(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+	make update-components.$*
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -464,7 +476,7 @@ passwd:
 class.csv.ls:
 %.class.csv.ls: data/%.csv
 	cat $<
-class.csv.load:
+class.csv.load.classname:
 class.csv.load.%: data/%.csv
 	# créer le groupe dans la base de données
 	# make class.create.$*
@@ -510,8 +522,8 @@ class.delete.%:
 	echo "DELETE FROM auth_group_validity WHERE auth_group_id = $*;" | $(RUN_SQL) && \
 	echo "DELETE FROM auth_group WHERE id = $*;" | $(RUN_SQL)
 
-class.add_to_course.class:	
-remote.class.add_to_course.class:	
+class.add_to_course.classname:	
+remote.class.add_to_course.classname:	
 class.add_to_course.%:
 	make courses.ls
 	@read -p "Course id: " course_id; \
@@ -607,7 +619,7 @@ db.backup.from-remote: remote.db.backup db.get-backup
 db.restore.from-remote: db.backup.from-remote db.restore.last
 
 db.get-backup: 
-	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress
+	rsync -raz $(REMOTE):$(SERVER_DIR)/backup/db/* ./backup/db --progress --exclude git
 
 
 	
@@ -780,6 +792,7 @@ course.time_spent:
 # Quick update the components from local repo
 #######################################################################
 update-components.doi:
+update-components.concepts-programmation:
 update-components.course-name:
 update-components.%:
 	# sync dev components repo to 21learning server
@@ -788,6 +801,8 @@ update-components.%:
 	$(SSH) 'docker exec $(REMOTE_RUNESTONE_CONTAINER_ID) rsync -raz applications/runestone/tmp-runestone-components/ /usr/local/lib/python3.7/site-packages/runestone --progress'
 	# rebuild the course
 	$(SSH) 'cd $(SERVER_DIR) && make course.build-all.$*'
+
+update-components: update-components.doi update-components.concepts-programmation
 
 
 #######################################################################
