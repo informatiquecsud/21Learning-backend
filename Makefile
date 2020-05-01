@@ -242,6 +242,20 @@ rsmanage.update:
 rsmanage.help:
 	docker exec -i -w /srv/web2py/applications/runestone $(RUNESTONE_CONTAINER_ID) rsmanage --help
 	
+update-webtj:
+	wget -r https://webtigerjython.ethz.ch/
+	@rm -rf webtj
+	@mv webtigerjython.ethz.ch webtj
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
+	@tar -czf webtj.tar.gz webtj
+	@make push
+	@make update-components.doi
+	@make update-components.concepts-programmation
+	@echo "##################################################################"
+	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
+	@echo "##  Some files may have to be manually upgraded"
+	@echo "##################################################################"
 	
 runestone-inspect-errors:
 	docker cp $(RUNESONE_SERVER_CONTAINER_ID):/srv/web2py/applications/runestone/errors .

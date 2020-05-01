@@ -66,3 +66,5 @@ backup
 __pycache__
 stats/*
 junk
+webtj
+webtj*.tar.gz
