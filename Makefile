@@ -2,15 +2,10 @@ SSH_USER=root
 SSH_PORT=22
 SSH_HOST=$(RUNESTONE_HOST)
 
-ENV_NAME=local
-ifdef USE_HIDORA
-	SSH_USER=$(HIDORA_SSH_USER)
-	SSH_PORT=$(HIDORA_SSH_PORT)
-	SSH_HOST=$(HIDORA_SSH_HOST)
-	ENV_NAME=hidora
-endif
-ifdef USE_OVH
-	ENV_NAME=ovh
+ifdef CUSTOM_SSH
+	SSH_USER=$(CUSTOM_SSH_USER)
+	SSH_PORT=$(CUSTOM_SSH_PORT)
+	SSH_HOST=$(CUSTOM_SSH_HOST)
 endif
 
 REMOTE=$(SSH_USER)@$(SSH_HOST)
@@ -26,9 +21,6 @@ RSYNC=rsync $(RSYNC_OPTIONS) --delete
 TIME = $(shell date +%Y-%m-%d_%Hh%M)
 DOTENV_FILE = .env.$(ENV_NAME)
 
-DB_GIT_BACKUP_DIR = backup/db/git
-DB_BACKUP_GIT_REPO = git@bitbucket.org:donnerc/21learning-db-backups.git
-DB_BACKUP_GIT = cd $(DB_GIT_BACKUP_DIR) && git
 
 RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
@@ -59,23 +51,40 @@ RUNESTONE_DIR = /srv/web2py/applications/runestone
 WEB2PY_BOOKS = $(RUNESTONE_DIR)/books
 
 # need to run the server-init rule for this to work
+ifeq ($(ENV_NAME), local)
 COMPOSE_OPTIONS = -f docker-compose-local.yml -f api/hasura/docker-compose.yaml
-ifdef RUNESTONE_REMOTE
-	COMPOSE_OPTIONS = -f docker-compose-production.yml -f api/hasura/docker-compose-prod.yaml
-endif
-
-ifdef
-	COMPOSE_OPTIONS =  -f docker-compose-production.yml -f docker-compose-production-hidora.yml
+else
+COMPOSE_OPTIONS = -f docker-compose-production.yml -f api/hasura/docker-compose-prod.yaml
 endif
 
 
 COMPOSE = docker-compose -f docker-compose.yml $(COMPOSE_PGADMIN) $(COMPOSE_OPTIONS)
 
+
+DB_GIT_BACKUP_DIR = backup/db/git
+DB_BACKUP_GIT_REPO = git@bitbucket.org:donnerc/21learning-db-backups.git
+DB_BACKUP_GIT = cd $(DB_GIT_BACKUP_DIR) && git
+
+
+###########################################
+## Docker management
+###########################################
+include docker.Makefile
+
+###########################################
+## Runestone setup
+###########################################
+include runestone-setup.Makefile
+
+###########################################
+## Service management
+###########################################
+include services.Makefile
+
+
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
 	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
-howto-load-dotenv.ovh:
-howto-load-dotenv.hidora:
 howto-load-dotenv.%:
 	@echo 'set -a; source .env.$* set +a' | clip.exe
 
@@ -86,32 +95,6 @@ echo-compose-options:
 no_targets__:
 list:
     sh -c "$(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | sort"
-
-# TODO: This .env.build stuff has to be eventually wiped off, an other way of doing it
-# should be found ...
-.env.build:
-	@echo $(DOTENV_FILE)
-	@if test -z "$(RUNESTONE_HOST)"; then echo "variable HOST not defined"; exit 1; fi
-	@if test -z "$(POSTGRES_PASSWORD)"; then echo "variable POSTGRES_PASSWORD not defined"; exit 1; fi
-	@if test -z "$(WEB2PY_PASSWORD)"; then echo "variable WEB2PY_PASSWORD not defined"; exit 1; fi
-	@if test -z "$(PGADMIN_PASSWORD)"; then echo "variable PGADMIN_PASSWORD not defined"; exit 1; fi
-	@rm -f $(DOTENV_FILE)
-	@echo "RUNESTONE_HOST=$(RUNESTONE_HOST)" >> $(DOTENV_FILE)
-	@echo "POSTGRES_PASSWORD=$(POSTGRES_PASSWORD)" >> $(DOTENV_FILE)
-	@echo "POSTGRES_USER=$(POSTGRES_USER)" >> $(DOTENV_FILE)
-	@echo "POSTGRES_DB=$(POSTGRES_DB)" >> $(DOTENV_FILE)
-	@echo "WEB2PY_PASSWORD=$(WEB2PY_PASSWORD)" >> $(DOTENV_FILE)
-	@echo "PGADMIN_PASSWORD=$(PGADMIN_PASSWORD)" >> $(DOTENV_FILE)
-	@echo "HIDORA_SSH_USER=$(HIDORA_SSH_USER)" >> $(DOTENV_FILE)
-	@echo "HIDORA_SSH_HOST=$(HIDORA_SSH_HOST)" >> $(DOTENV_FILE)
-	@echo "HIDORA_SSH_PORT=$(HIDORA_SSH_PORT)" >> $(DOTENV_FILE)
-	@echo "USE_HIDORA=$(USE_HIDORA)" >> $(DOTENV_FILE)
-	@echo "USE_OVH=$(USE_OVH)" >> $(DOTENV_FILE)
-	@echo "HASURA_ADMIN_SECRET_KEY=$(HASURA_ADMIN_SECRET_KEY)" >> $(DOTENV_FILE)
-	@echo 'HASURA_GRAPHQL_JWT_SECRET=$(HASURA_GRAPHQL_JWT_SECRET)' >> $(DOTENV_FILE)
-	@echo 'WEB2PY_PRIVATE_KEY=$(WEB2PY_PRIVATE_KEY)' >> $(DOTENV_FILE)
-	#echo '$(HASURA_GRAPHQL_JWT_SECRET)'
-	#$(shell echo 'HASURA_GRAPHQL_JWT_SECRET=\'(cat auth/key.json)\'' >> $(DOTENV_FILE)) 
 
 push:
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
@@ -128,55 +111,15 @@ push:
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
 
-services.config:
-	$(COMPOSE) config
 
-
-service.up.service:
-service.up.db:
-service.up.runestone:
-service.up.pgadmin:
-service.up.hasura:
-service.up.%:
-	$(COMPOSE) up -d $*
-
-service.build.service-name:
-service.build.db:
-service.build.runestone:
-service.build.pgadmin:
-service.build.hasura:
-service.build.%:
-	$(COMPOSE) build $*
-
-
-service.down.service-name:
-service.down.%:
-	$(COMPOSE) down $*
-service.stop.service-name:
-service.stop.%:
-	$(COMPOSE) stop $*
-service.start.service-name:
-service.start.%:
-	$(COMPOSE) start $*
-service.rm.service-name:
-service.rm.%:
-	$(COMPOSE) rm -f  $*
-service.logs.service-name:
-service.logs.%:
-	$(COMPOSE) logs -f  $*
-service.full-restart.service-name:
-service.full-restart.%: 
-	make service.stop.$* 
-	make service.rm.$*
-	make service.up.$*
-	make service.logs.$*
-service.restart.service-name:
-service.restart.%: 
-	make service.stop.$* 
-	make service.start.$*
 
 ssh:	
 	$(SSH)  -F ./.ssh.config
+
+
+dashboard.sync:
+	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress
+
 
 start:
 	$(COMPOSE) start
@@ -205,10 +148,6 @@ logs:
 logsf:
 	$(COMPOSE) logs -f runestone
 
-dashboard.sync:
-	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress
-
-
 db-rm:
 	$(COMPOSE) stop db
 	$(COMPOSE) rm -f db
@@ -220,7 +159,7 @@ runestone-rm:
 	$(COMPOSE) stop runestone
 	$(COMPOSE) rm -f runestone
 
-runestone-image:
+runestone.build-image:
 	docker build -t runestone/server .
 runestone-restart:
 	$(COMPOSE) stop runestone
@@ -278,12 +217,6 @@ pgadmin-rm:
 pgadmin-up:
 	$(COMPOSE) up pgadmin
 
-
-server-init:
-	$(SSH) 'echo "export RUNESTONE_REMOTE=true" >> ~/.bashrc'
-	$(SSH) 'echo "export USE_HIDORA=$(USE_HIDORA)" >> ~/.bashrc'
-	$(SSH) 'echo "export POSTGRES_DB=$(POSTGRES_DB)" >> ~/.bashrc'
-	$(SSH) 'echo "export POSTGRES_USER=$(POSTGRES_USER)" >> ~/.bashrc'
 
 proxy-start:
 	cd nginx-letsencrypt && docker-compose build && docker-compose up -d
@@ -671,7 +604,6 @@ include table-completions.Makefile
 table-completions.update:
 
 
-
 #######################################################################
 # Auto-completion for sql queries
 #######################################################################
@@ -686,121 +618,7 @@ query-completions.update:
 	@cat -n query-completions.Makefile
 
 
-#######################################################################
-# Queries for managing the course Live
-#######################################################################
-useinfo.question.div_id:
-remote.useinfo.question.div_id:
-useinfo.question.%:
-	@echo "SELECT DISTINCT question from questions WHERE name LIKE '$*';" | $(RUN_SQL)
-	@echo "SELECT DISTINCT \
-		auth_user.last_name AS \"Nom\", \
-		auth_user.first_name AS \"Prénom\", \
-		useinfo.act AS \"Réponse\", \
-		useinfo.timestamp AS \"quand ?\" \
-	FROM \
-		useinfo \
-		INNER JOIN ( \
-			SELECT sid, div_id, MAX(timestamp) AS timestamp \
-			FROM useinfo \
-			GROUP BY sid, div_id \
-		) AS max_useinfo ON useinfo.sid = max_useinfo.sid AND useinfo.div_id = max_useinfo.div_id \
-			AND useinfo.timestamp = max_useinfo.timestamp \
-		LEFT JOIN auth_user ON useinfo.sid = auth_user.username \
-		LEFT JOIN questions ON useinfo.div_id = questions.name \
-	WHERE \
-		useinfo.div_id LIKE '$*' \
-		AND useinfo.course_id LIKE '$(COURSE)' \
-	ORDER BY auth_user.last_name, auth_user.first_name, useinfo.timestamp desc;" | $(RUN_SQL)
-
-subchapter.ls.questions.subchapter_label:
-subchapter.ls.questions.%:
-	@echo "SELECT \
-		name AS \"div_id\", \
-		question, \
-		question_type AS \"Donnée\" \
-	FROM \
-		questions \
-	WHERE \
-		subchapter = '$*' \
-	ORDER BY \
-		timestamp;" | $(RUN_SQL)
-subchapter.ls.questions.short.subchapter_label:
-subchapter.ls.questions.short.%:
-	for machin in $(shell echo "SELECT \
-		name AS \"div_id\" \
-	FROM \
-		questions \
-	WHERE \
-		subchapter = '$*' AND question IS NOT NULL \
-	ORDER BY \
-		timestamp;" | $(RUN_SQL) -qtAX); do make useinfo.question.$$machin COURSE=$(COURSE); done
-
-args.%:
-	make $* $(ARGS)
-
-stats.save:
-	make remote.subchapter.ls.questions.short.$(SUBSECTION) REMOTE_ARGS="COURSE=$(COURSE)" | grep -vE 'make\[.+\].+directory' > stats/$(SUBSECTION)-$(COURSE).txt
-	
-stats.view:
-	code stats/$(SUBSECTION)-$(COURSE).txt
-
-exams.clean.course_name:
-exams.clean.doi:
-exams.clean.%:
-	@echo "removing HTML pages for examens in $(SERVER_DIR)/books/$*/published/$*/examens/*"
-	$(SSH) 'cd runestone-server/books/$*/published/$*/examens/ && rm -f $(EXAM_CODE).html'
-
-# exams.setup-code.course_name:
-# exams.setup-code.%:
-# 	cd $(SERVER_DIR)/books/$*/published/$*/examens/ && mv exa-$(EXAM).html $(EXAM_CODE).html
-
-exams.push.course_name:
-exams.push.doi:
-exams.push.%:
-	make course.push-all.$* KEEP_EXAMS=true
-	$(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens/ && mv exa-$(EXAM).html $(EXAM_CODE).html'
-	# make remote.exams.setup-code.$* REMOTE_ARGS="EXAM_CODE=$(EXAM_CODE)
-	# EXAM=$(EXAM)"
-	# must be done to prevent other exams to be visible
-	#$(SSH) rm -f runestone-server/books/$*/published/$*/examens/exa*.html
-	
-doc.exams.push:
-	@echo "make exams.push.doi EXAM=1-A EXAM_CODE=HKJHGZ"
-doc.exams.clean:
-	@echo "make exams.clean.doi EXAM=1-A EXAM_CODE=HKJHGZ"
-
-# before doing that, generate the scores.sql file with something like
-# 	xlsx2csv data/exams/exa1/exa1C-1gy8.xlsx -s 2 --ignoreempty | python scores2sql.py > data/exams/scores.tmp.sql
-# 		the -s 2 takes the scores out of the sheet #2
-exams.push.scores:
-	cat data/exams/scores.tmp.sql | $(REMOTE_RUN_SQL)
-
-
-course.time_spent:
-	@echo " \
-	SELECT \
-		sid, \
-		first_name, \
-		last_name, \
-		course_id, \
-		max(timestamp) - min(timestamp) AS time_spent \
-	FROM \
-		useinfo_course_user_grades \
-	WHERE \
-		div_id LIKE '$(SECTION)' \
-		AND course_id LIKE '$(COURSE)' \
-	GROUP BY \
-		sid, \
-		course_id, \
-		first_name, \
-		last_name \
-	HAVING \
-		max(timestamp) - min(timestamp) > '00:00:00' \
-	ORDER BY \
-		time_spent ASC;" | $(REMOTE_RUN_SQL)
-
-
+include course-management-sql.Makefile
 
 #######################################################################
 # Quick update the components from local repo

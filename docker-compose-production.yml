@@ -17,7 +17,7 @@ services:
       RUNESTONE_USE_HTTPS: "true"
       VIRTUAL_HOST: "${RUNESTONE_HOST}"
       LETSENCRYPT_HOST: "${RUNESTONE_HOST}"
-      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+      LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
       PGOPTIONS: "-c 'custom.web2py_private_key=${WEB2PY_PRIVATE_KEY}'"
 
   pgadmin:
@@ -33,11 +33,11 @@ services:
     env_file: .env
     environment:
       PGADMIN_LISTEN_PORT: "80"
-      PGADMIN_DEFAULT_EMAIL: "cedonner@gmail.com"
+      PGADMIN_DEFAULT_EMAIL: "${ADMIN_EMAIL}"
       PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_PASSWORD}"
       VIRTUAL_HOST: "db.${RUNESTONE_HOST}"
       LETSENCRYPT_HOST: "db.${RUNESTONE_HOST}"
-      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+      LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
     volumes:
       - ./pgadmin/servers.json:/servers.json
 
@@ -54,6 +54,6 @@ services:
     environment:
       VIRTUAL_HOST: "dashboard.${RUNESTONE_HOST}"
       LETSENCRYPT_HOST: "dashboard.${RUNESTONE_HOST}"
-      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+      LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
     volumes:
       - ./dashboard/dist/spa:/usr/share/nginx/html
