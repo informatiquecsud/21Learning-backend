@@ -19,7 +19,7 @@ upgrade:
 	$(SSH) apt-get upgrade -y --fix-missing
 
 init: upgrade 
-	$(SSH) apt-get -y install curl rsync git build-essential htop --fix-missing
+	$(SSH) apt-get -y install curl rsync git build-essential htop bash-completion --fix-missing
 
 # This provisions the remote machine with docker using docker-machine
 docker.setup-machine:
