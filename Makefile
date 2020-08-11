@@ -124,7 +124,7 @@ ssh:
 
 
 dashboard.sync:
-	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress
+	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress --delete
 
 
 start:
