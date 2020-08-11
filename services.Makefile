@@ -1,6 +1,7 @@
 
 services.config:
 	$(COMPOSE) config
+	@echo "$(COMPOSE)" | $(CLIP)
 
 
 service.up.service:

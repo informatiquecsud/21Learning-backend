@@ -3,8 +3,11 @@ docker.context.use.default:
 docker.context.use.%:
 	docker context use $*
 
-docker.context:
+context:
 	docker context ls
+
+envname:
+	@echo "Env name is '$(ENV_NAME)'"
 	
 docker.env: docker.context.use.env
 docker.context.use.env:

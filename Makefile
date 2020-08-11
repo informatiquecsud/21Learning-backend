@@ -21,6 +21,8 @@ RSYNC=rsync $(RSYNC_OPTIONS) --delete
 TIME = $(shell date +%Y-%m-%d_%Hh%M)
 DOTENV_FILE = .env.$(ENV_NAME)
 
+CLIP = clip.exe
+
 
 RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
 DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
@@ -96,7 +98,7 @@ no_targets__:
 list:
     sh -c "$(MAKE) -p no_targets__ | awk -F':' '/^[a-zA-Z0-9][^\$$#\/\\t=]*:([^=]|$$)/ {split(\$$1,A,/ /);for(i in A)print A[i]}' | grep -v '__\$$' | sort"
 
-push:
+push-old:
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
 		--progress \
 		--exclude=.git \
@@ -110,9 +112,13 @@ push:
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
+push:
+	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR) 
+	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env && rm -f $(DOTENV_FILE)'
 
 
-
+ssh.interactive:	
+	$(SSH)
 ssh:	
 	$(SSH)  -F ./.ssh.config
 
@@ -547,15 +553,15 @@ db.restore.%:
 	@echo Restoring SQL dump $* ...
 	cp backup/db/$* backup/tmp.sql.gz
 	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
-	docker stop $(RUNESTONE_CONTAINER_ID)
-	docker stop $(PGADMIN_CONTAINER_ID)
-	docker stop $(HASURA_CONTAINER_ID)
+	# docker stop $(RUNESTONE_CONTAINER_ID)
+	# docker stop $(PGADMIN_CONTAINER_ID)
+	# docker stop $(HASURA_CONTAINER_ID)
 	$(DROPDB)
 	$(CREATEDB)
 	gunzip -c backup/db/$* | $(PSQL)
-	docker start $(RUNESTONE_CONTAINER_ID)
-	docker start $(PGADMIN_CONTAINER_ID)
-	docker start $(HASURA_CONTAINER_ID)
+	# docker start $(RUNESTONE_CONTAINER_ID)
+	# docker start $(PGADMIN_CONTAINER_ID)
+	# docker start $(HASURA_CONTAINER_ID)
 
 db.restore.last:
 	make db.restore.$(shell ls backup/db -1t | head -1)

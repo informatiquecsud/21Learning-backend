@@ -12,7 +12,7 @@ services:
     image: redis
 
   runestone:
-    image: runestone/server
+    image: donnerc/runestone-server:1920
     restart: always
     #command: tail -F peanutbutter
     volumes:
