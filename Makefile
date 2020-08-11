@@ -268,9 +268,9 @@ course.build.oxocard101:
 course.build.overview:
 course.build.doi:
 course.build.%:
-	@echo $(RUNESTONE_CONTAINER_ID)
-	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
-	@cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
+	echo $(RUNESTONE_CONTAINER_ID)
+	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
+	cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 	
 # Course management
 course.build-all.coursename:
@@ -278,9 +278,10 @@ course.build-all.oxocard101:
 course.build-all.overview:
 course.build-all.doi:
 course.build-all.%:
-	@docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
+	@echo $(RUNESTONE_CONTAINER_ID)
+	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
 	# @docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
-	@cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
+	cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 	
 	
 course.add_instructor.oxocard101:

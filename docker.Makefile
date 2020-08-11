@@ -13,7 +13,7 @@ docker.env: docker.context.use.env
 docker.context.use.env:
 	docker context use runestone-$(ENV_NAME)
 
-context.create.:
+context.create.new-context-name:
 context.create.%:
 	echo "ENV_NAME=$*" > .env.$*
 	cat .env.template >> .env.$*
@@ -23,10 +23,11 @@ context.create.%:
 context.use.local:
 	docker context use default
 
-context.use.:
+context.use.context-name:
 context.use.%:
 	docker context use $(RUNESTONE_CONTEXT_BASE)-$*
 	ln -sf .env.$* .env
+	make howto-load-dotenv.$*
 
 context.rm.: 
 context.rm.%: context.use.local
