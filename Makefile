@@ -203,7 +203,11 @@ update-webtj:
 	@echo "##################################################################"
 	
 runestone-inspect-errors:
-	docker cp $(RUNESONE_SERVER_CONTAINER_ID):/srv/web2py/applications/runestone/errors .
+	docker cp $(RUNESTONE_CONTAINER_ID):/srv/web2py/applications/runestone/errors .
+	
+runestone-inspect-error.filename:
+runestone-inspect-error.%:
+	docker exec $(RUNESTONE_CONTAINER_ID) cat /srv/web2py/applications/runestone/errors/$*
 
 full-restart: stop rm up logsf
 
