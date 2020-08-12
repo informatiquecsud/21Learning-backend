@@ -32,7 +32,7 @@ services:
       DEV_DBURL: "postgresql://runestone:${POSTGRES_PASSWORD}@db/runestone"
       TEST_DBURL: "postgresql://runestone:${POSTGRES_PASSWORD}@db/runestone_test"
       RUNESTONE_HOST: "${RUNESTONE_HOST}"
-      WEB2PY_PASSWORD: "maison"
+      WEB2PY_PASSWORD: "${WEB2PY_PASSWORD}"
       WEB2PY_ADMIN_SECURITY_BYPASS: "true"
       RUNESTONE_USE_SERVICES: "true"
       RUNESTONE_USE_HTTPS: "false"

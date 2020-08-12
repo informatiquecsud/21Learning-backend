@@ -1,7 +1,7 @@
 version: "3"
 services:
   hasura:
-    image: hasura/graphql-engine:v1.0.0-beta.8
+    image: hasura/graphql-engine:v1.3.0
     ports:
       - "3000:8080"
     depends_on:

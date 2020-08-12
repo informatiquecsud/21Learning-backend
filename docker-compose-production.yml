@@ -19,6 +19,7 @@ services:
       LETSENCRYPT_HOST: "${RUNESTONE_HOST}"
       LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
       PGOPTIONS: "-c 'custom.web2py_private_key=${WEB2PY_PRIVATE_KEY}'"
+      WEB2PY_PASSWORD: "${WEB2PY_PASSWORD}"
 
   pgadmin:
     image: dpage/pgadmin4:latest
