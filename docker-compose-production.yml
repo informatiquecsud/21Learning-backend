@@ -76,15 +76,17 @@ services:
       LETSENCRYPT_EMAIL: "cedonner@gmail.com"
     
 
-  hasura-backend-plus:
-    image: nhost/hasura-backend-plus:latest
-    ports:
-      - '3000'
-    environment:
-      SERVER_URL: "https://hbp.${RUNESTONE_HOST}"
-      HASURA_ENDPOINT: http://hasura:8080/v1/graphql
-      HASURA_GRAPHQL_ADMIN_SECRET: '${HASURA_ADMIN_SECRET_KEY}'
-      JWT_ALGORITHM: HS512
-      VIRTUAL_HOST: "hbp.${RUNESTONE_HOST}"
-      LETSENCRYPT_HOST: "hbp.${RUNESTONE_HOST}"
-      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+#  hasura-backend-plus:
+#    image: nhost/hasura-backend-plus:latest
+#    AUTO_MIGRATE: false
+#    restart: always
+#    ports:
+#      - '3000'
+#    environment:
+#      SERVER_URL: "https://hbp.${RUNESTONE_HOST}"
+#      HASURA_ENDPOINT: http://hasura:8080/v1/graphql
+#      HASURA_GRAPHQL_ADMIN_SECRET: '${HASURA_ADMIN_SECRET_KEY}'
+#      JWT_ALGORITHM: HS512
+#      VIRTUAL_HOST: "hbp.${RUNESTONE_HOST}"
+#      LETSENCRYPT_HOST: "hbp.${RUNESTONE_HOST}"
+#      LETSENCRYPT_EMAIL: "cedonner@gmail.com"

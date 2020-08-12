@@ -83,6 +83,14 @@ include runestone-setup.Makefile
 ###########################################
 include services.Makefile
 
+###########################################
+## Makefile rules specific to this context 
+###########################################
+ifdef ENV_NAME 
+include $(ENV_NAME).context.Makefile
+endif
+
+
 
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
@@ -120,7 +128,7 @@ push:
 ssh.interactive:	
 	$(SSH)
 ssh:	
-	$(SSH)  -F ./.ssh.config
+	$(SSH) -F ./.ssh.config
 
 
 dashboard.sync:
@@ -187,19 +195,6 @@ rsmanage.update:
 rsmanage.help:
 	docker exec -i -w /srv/web2py/applications/runestone $(RUNESTONE_CONTAINER_ID) rsmanage --help
 	
-update-webtj:
-	wget -r https://webtigerjython.ethz.ch/
-	@rm -rf webtj
-	@mv webtigerjython.ethz.ch webtj
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
-	@tar -czf webtj.tar.gz webtj
-	@make push
-	@make update-components
-	@echo "##################################################################"
-	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
-	@echo "##  Some files may have to be manually upgraded"
-	@echo "##################################################################"
 	
 runestone-inspect-errors:
 	docker cp $(RUNESTONE_CONTAINER_ID):/srv/web2py/applications/runestone/errors .
@@ -283,9 +278,10 @@ course.build-all.doi:
 course.build-all.%:
 	@echo $(RUNESTONE_CONTAINER_ID)
 	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
-	# @docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
-	cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
-	
+	# @docker exec -i -w $(SERVER_DIR) cp webtj.tar.gz
+	# books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar
+	# -xf webtj.tar.gz
+	make copy.webtj.$*	
 	
 course.add_instructor.oxocard101:
 course.add_instructor.overview:
@@ -645,7 +641,31 @@ update-components.%:
 	$(SSH) 'cd $(SERVER_DIR) && make course.build-all.$*'
 
 update-components:
-	@for course in $(COURSES); do echo "Updating course $$course; update-components.$$course; echo "done"; done
+	@for course in $(COURSES); do echo "Updating course $$course"; make update-components.$$course; echo "done"; done
+
+update-webtj:
+	wget -r https://webtigerjython.ethz.ch/
+	@rm -rf webtj
+	@mv webtigerjython.ethz.ch webtj
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
+	@tar -czf webtj.tar.gz webtj
+	@rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
+	$(SSH) 'for course in $(COURSES); cd $(SERVER_DIR) && make copy.webtj.$$course; done'
+	#@make update-components
+	@echo "##################################################################"
+	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
+	@echo "##  Some files may have to be manually upgraded"
+	@echo "##################################################################"
+
+copy.webtj.coursename:
+copy.webtj.%:
+	rm -rf books/$*/published/$*/_static/webtj
+	cp -f webtj.tar.gz books/$*/published/$*/_static/
+	cd books/$*/published/$*/_static/
+	tar -xf webtj.tar.gz
+
 
 
 #######################################################################

@@ -68,3 +68,4 @@ stats/*
 junk
 webtj
 webtj*.tar.gz
+*.context.Makefile
