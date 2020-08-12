@@ -11,6 +11,15 @@ services:
   redis:
     image: redis
 
+  hasura:
+    image: hasura/graphql-engine:v1.3.0
+    links:
+      - db
+    depends_on:
+      - "db"
+    restart: always
+
+
   runestone:
     image: donnerc/runestone-server:1920
     restart: always

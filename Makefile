@@ -56,7 +56,7 @@ WEB2PY_BOOKS = $(RUNESTONE_DIR)/books
 ifeq ($(ENV_NAME), local)
 COMPOSE_OPTIONS = -f docker-compose-local.yml -f api/hasura/docker-compose.yaml
 else
-COMPOSE_OPTIONS = -f docker-compose-production.yml -f api/hasura/docker-compose-prod.yaml
+COMPOSE_OPTIONS = -f docker-compose-production.yml
 endif
 
 

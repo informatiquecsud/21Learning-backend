@@ -58,3 +58,30 @@ services:
       LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
     volumes:
       - ./dashboard/dist/spa:/usr/share/nginx/html
+
+  hasura:
+    ports:
+      - "8080"
+    network_mode: "bridge"
+    env_file: .env
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://runestone:${POSTGRES_PASSWORD}@db/runestone"
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      ## uncomment next line to set an admin secret
+      HASURA_GRAPHQL_ADMIN_SECRET: "${HASURA_ADMIN_SECRET_KEY}"
+      HASURA_GRAPHQL_JWT_SECRET: "${HASURA_GRAPHQL_JWT_SECRET}"
+      VIRTUAL_HOST: "api.${RUNESTONE_HOST}"
+      LETSENCRYPT_HOST: "api.${RUNESTONE_HOST}"
+      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+    
+
+  hasura-backend-plus:
+    image: nhost/hasura-backend-plus:latest
+    ports:
+      - '3000'
+    environment:
+      SERVER_URL: "https://hbp.${RUNESTONE_HOST}"
+      HASURA_ENDPOINT: http://hasura:8080/v1/graphql
+      HASURA_GRAPHQL_ADMIN_SECRET: '${HASURA_GRAPHQL_ADMIN_SECRET}'
+      JWT_ALGORITHM: RS256
