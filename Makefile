@@ -54,7 +54,7 @@ WEB2PY_BOOKS = $(RUNESTONE_DIR)/books
 
 # need to run the server-init rule for this to work
 ifeq ($(ENV_NAME), local)
-COMPOSE_OPTIONS = -f docker-compose-local.yml -f api/hasura/docker-compose.yaml
+COMPOSE_OPTIONS = -f docker-compose-local.yml
 else
 COMPOSE_OPTIONS = -f docker-compose-production.yml
 endif
@@ -167,15 +167,15 @@ runestone-rm:
 
 runestone.build-image:
 	docker build -t runestone/server .
-runestone-restart:
+runestone.restart:
 	$(COMPOSE) stop runestone
 	$(COMPOSE) rm -f runestone
 	$(COMPOSE) up -d runestone
-runestone-exec-bash:
+runestone.exec-bash:
 	docker exec -it $(RUNESTONE_CONTAINER_ID) bash
-runestone-ps:
+runestone.ps:
 	$(COMPOSE) ps
-runestone-update-components:
+runestone.update-components:
 	# $(COMPOSE) exec runestone pip install --upgrade
 	# git+git://github.com/informatiquecsud/RunestoneComponents.git
 	@echo copying runestone components to container $(RUNESTONE_CONTAINER_ID)
@@ -195,8 +195,7 @@ update-webtj:
 	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
 	@tar -czf webtj.tar.gz webtj
 	@make push
-	@make update-components.doi
-	@make update-components.concepts-programmation
+	@make update-components
 	@echo "##################################################################"
 	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
 	@echo "##  Some files may have to be manually upgraded"
@@ -639,13 +638,14 @@ update-components.concepts-programmation:
 update-components.course-name:
 update-components.%:
 	# sync dev components repo to 21learning server
-	@rsync -raz  ~/runestone-components/runestone/ $(REMOTE):$(SERVER_DIR)/tmp-runestone-components/ --progress
+	@rsync -raz  ../components/runestone/ $(REMOTE):$(SERVER_DIR)/tmp-runestone-components/ --progress
 	# sync the remote repo with the python site-packages inside runestone container
 	$(SSH) 'docker exec $(REMOTE_RUNESTONE_CONTAINER_ID) rsync -raz applications/runestone/tmp-runestone-components/ /usr/local/lib/python3.7/site-packages/runestone --progress'
 	# rebuild the course
 	$(SSH) 'cd $(SERVER_DIR) && make course.build-all.$*'
 
-update-components: update-components.doi update-components.concepts-programmation
+update-components:
+	@for course in $(COURSES); do echo "Updating course $$course; update-components.$$course; echo "done"; done
 
 
 #######################################################################
