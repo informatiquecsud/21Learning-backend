@@ -661,10 +661,10 @@ update-webtj:
 
 copy.webtj.coursename:
 copy.webtj.%:
-	cd $(SERVER_DIR) && 
-		rm -rf books/$*/published/$*/_static/webtj && 
-		cp -f webtj.tar.gz books/$*/published/$*/_static/ &&
-		cd books/$*/published/$*/_static/ && 
+	cd $(SERVER_DIR) && \ 
+		rm -rf books/$*/published/$*/_static/webtj && \ 
+		cp -f webtj.tar.gz books/$*/published/$*/_static/ && \
+		cd books/$*/published/$*/_static/ && \ 
 		tar -xf webtj.tar.gz
 
 
