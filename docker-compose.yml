@@ -21,7 +21,7 @@ services:
 
 
   runestone:
-    image: donnerc/runestone-server:1920
+    image: donnerc/runestone-server:latest
     restart: always
     #command: tail -F peanutbutter
     volumes:
