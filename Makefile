@@ -644,15 +644,15 @@ update-components:
 	@for course in $(COURSES); do echo "Updating course $$course"; make update-components.$$course; echo "done"; done
 
 update-webtj:
-	wget -r https://webtigerjython.ethz.ch/
-	@rm -rf webtj
-	@mv webtigerjython.ethz.ch webtj
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
-	@tar -czf webtj.tar.gz webtj
-	@rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
-	$(SSH) 'for course in $(COURSES); cd $(SERVER_DIR) && make copy.webtj.$$course; done'
+	#wget -r https://webtigerjython.ethz.ch/
+	#@rm -rf webtj
+	#@mv webtigerjython.ethz.ch webtj
+	#@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
+	#@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
+	#@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
+	#tar -czf webtj.tar.gz webtj
+	rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
+	for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
 	#@make update-components
 	@echo "##################################################################"
 	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
