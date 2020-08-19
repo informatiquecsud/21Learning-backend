@@ -24,6 +24,7 @@ services:
     image: donnerc/runestone-server:latest
     restart: always
     #command: tail -F peanutbutter
+    entrypoint: /usr/local/sbin/entrypoint.sh
     volumes:
       - ./:/srv/web2py/applications/runestone
     links:

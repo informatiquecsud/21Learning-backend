@@ -44,6 +44,7 @@ RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POS
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_RESTORE = docker exec -i $(DB_CONTAINER_ID) pg_restore $(POSTGRES_DB)  -U $(POSTGRES_USER) 
 PSQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+REMOTE_PSQL = docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 DROPDB = docker exec -i $(DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
 CREATEDB = docker exec -i $(DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
 
@@ -121,11 +122,12 @@ push-old:
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
 push:
-	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR) 
+	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR)/$(DOTENV_FILE) 
+	$(RSYNC) -r *.Makefile $(REMOTE):$(SERVER_DIR) 
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env && rm -f $(DOTENV_FILE)'
 
 
-ssh.interactive:	
+ssh.noconfig:	
 	$(SSH)
 ssh:	
 	$(SSH) -F ./.ssh.config
@@ -147,7 +149,6 @@ rm: stop
 
 ps:
 	$(COMPOSE) ps
-
 
 up:
 	$(COMPOSE) up -d
@@ -563,8 +564,25 @@ db.restore.%:
 	# docker start $(PGADMIN_CONTAINER_ID)
 	# docker start $(HASURA_CONTAINER_ID)
 
+
+
 db.restore.last:
 	make db.restore.$(shell ls backup/db -1t | head -1)
+
+remote.db.restore.last:
+	make db.backup.push.last
+	$(REMOTE_DROP_DB)
+	$(REMOTE_CREATEDB)
+	$(SSH) 'gunzip -c $(SERVER_DIR)/backup/db/$(shell ls backup/db -1t | head -1) | $(REMOTE_PSQL)'
+
+# remote.db.restore.last:
+# 	remote.db.restore.$(shell ls backup/db -1t | head -1)
+
+db.backup.push.last:
+	$(SSH) 'mkdir -p $(SERVER_DIR)/backup/db'
+	$(RSYNC) -raz backup/db/$(shell ls backup/db -1t | head -1) $(REMOTE):$(SERVER_DIR)/backup/db/ --progress
+
+
 
 
 db.backup.from-remote: remote.db.backup db.get-backup

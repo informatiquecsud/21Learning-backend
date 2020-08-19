@@ -25,7 +25,7 @@ init: upgrade
 docker.setup-machine:
 	docker-machine create \
 		--driver generic \
-		--generic-ip-address=$(RUNESTONE_IP) \
+		--generic-ip-address=$(shell dig $$ROOT_DOMAIN +short) \
 		--generic-ssh-key ~/.ssh/id_rsa \
 		$(ENV_NAME)
 
