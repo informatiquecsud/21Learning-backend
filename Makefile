@@ -223,21 +223,6 @@ pgadmin-up:
 	$(COMPOSE) up pgadmin
 
 
-proxy-start:
-	cd nginx-letsencrypt && docker-compose build && docker-compose up -d
-proxy-down:
-	cd nginx-letsencrypt && docker-compose down
-proxy-logs:
-	cd nginx-letsencrypt && docker-compose logs
-proxy-logsf:
-	cd nginx-letsencrypt && docker-compose logs -f
-proxy-bash:
-	cd nginx-letsencrypt && docker-compose exec nginx-proxy bash
-proxy-ps:
-	cd nginx-letsencrypt && docker-compose ps
-proxy-conf:
-	cd nginx-letsencrypt && docker-compose exec -T nginx-proxy cat /etc/nginx/conf.d/default.conf
-
 	
 remote.runestone-sync-errors:
 	$(RSYNC) -raz $(REMOTE):$(SERVER_DIR)/errors ./runestone-errors --progress
@@ -340,7 +325,7 @@ course.push-all.%:
 	make remote.course.build-all.$* KEEP_EXAMS=$(KEEP_EXAMS)
 	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd
 	#$(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
-	make update-components.$*
+	# make update-components.$*
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -662,15 +647,16 @@ update-components:
 	@for course in $(COURSES); do echo "Updating course $$course"; make update-components.$$course; echo "done"; done
 
 update-webtj:
-	#wget -r https://webtigerjython.ethz.ch/
-	#@rm -rf webtj
-	#@mv webtigerjython.ethz.ch webtj
-	#@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
-	#@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
-	#@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
-	#tar -czf webtj.tar.gz webtj
+	wget -r https://webtigerjython.ethz.ch/
+	@rm -rf webtj
+	@mv webtigerjython.ethz.ch webtj
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
+	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python3.js > webtj/javascripts/ace/mode-python3.js
+	tar -czf webtj.tar.gz webtj
 	rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
-	for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
+	@for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
 	#@make update-components
 	@echo "##################################################################"
 	@echo "##  Updating WebTJ can cause problems : manually test WebTJ save functionality"
