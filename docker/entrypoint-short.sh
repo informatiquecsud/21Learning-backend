@@ -27,33 +27,34 @@ if [ $WEB2PY_CONFIG == "development" ]; then
     pip install --upgrade git+git://github.com/RunestoneInteractive/RunestoneComponents.git
 fi
 
+
 # Initialize the database
-# if [ ! -f "$stamp" ]; then
+if [ ! -f "$stamp" ]; then
 
-#     info "Install rsmanage local module"
-#     pip install -e ${RUNESTONE_PATH}/rsmanage
+    info "Creating auth key"
+    mkdir -p ${RUNESTONE_PATH}/private
+    echo ${WEB2PY_PRIVATE_KEY} > ${RUNESTONE_PATH}/private/auth.key
 
-#     info "Creating auth key"
-#     mkdir -p ${RUNESTONE_PATH}/private
-#     echo "sha512:16492eda-ba33-48d4-8748-98d9bbdf8d33" > ${RUNESTONE_PATH}/private/auth.key
+    info "Creating pgpass file"
+    echo "db:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" > /root/.pgpass
+    chmod 600 /root/.pgpass
 
-#     info "Creating pgpass file"
-#     echo "db:5432:*:$POSTGRES_USER:$POSTGRES_PASSWORD" > /root/.pgpass
-#     chmod 600 /root/.pgpass
+    info "Install rsmanage local module"
+    pip install -e ${RUNESTONE_PATH}/rsmanage
 
-#     # add a new setting so that institutions can run using a base book like thinkcspy as their
-#     # course.  On Runestone.academy we don't let anyone be an instructor for the base courses
-#     # because they are open to anyone.  This makes for a much less complicated deployment strategy
-#     # for an institution that just wants to run their own server and use one or two books.
-#     if [ ! -f "${RUNESTONE_PATH}/models/1.py" ]; then
-#         touch "${RUNESTONE_PATH}/models/1.py"
-#     fi
-#     echo "settings.docker_institution_mode = True" >> "${RUNESTONE_PATH}/models/1.py"
+    # add a new setting so that institutions can run using a base book like thinkcspy as their
+    # course.  On Runestone.academy we don't let anyone be an instructor for the base courses
+    # because they are open to anyone.  This makes for a much less complicated deployment strategy
+    # for an institution that just wants to run their own server and use one or two books.
+    if [ ! -f "${RUNESTONE_PATH}/models/1.py" ]; then
+        touch "${RUNESTONE_PATH}/models/1.py"
+    fi
+    echo "settings.docker_institution_mode = True" >> "${RUNESTONE_PATH}/models/1.py"
 
-#     touch "${stamp}"
-# else
-#     info "Already initialized"
-# fi
+    touch "${stamp}"
+else
+    info "Already initialized"
+fi
 
 RETRIES=10
 set +e
@@ -166,7 +167,7 @@ touch ${WEB2PY_PATH}/logs/uwsgi.log
 #             cd $book;
 #             if [ ! -f NOBUILD ]; then
 #                 runestone build $buildargs deploy
-#             else
+##             else
 #                 info "skipping $book due to NOBUILD file"
 #             fi
 #         );
