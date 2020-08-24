@@ -52,7 +52,7 @@ service.full-restart.%:
 service.restart.service-name:
 service.restart.%: 
 	make service.stop.$* 
-	make service.start.$*
+	make service.up.$*
 
 
 

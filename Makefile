@@ -48,6 +48,9 @@ REMOTE_PSQL = docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) 
 DROPDB = docker exec -i $(DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
 CREATEDB = docker exec -i $(DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
 
+REMOTE_DROPDB = docker exec -i $(REMOTE_DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
+REMOTE_CREATEDB = docker exec -i $(REMOTE_DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
+
 COMPOSE_PGADMIN = -f docker-compose-pgadmin.yml
 
 RUNESTONE_DIR = /srv/web2py/applications/runestone
@@ -96,6 +99,7 @@ endif
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
 	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
+howto-load-dotenv.envname:
 howto-load-dotenv.%:
 	@echo 'set -a; source .env.$* set +a' | clip.exe
 
@@ -121,7 +125,7 @@ push-old:
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
-push:
+push-env:
 	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR)/$(DOTENV_FILE) 
 	$(RSYNC) -r *.Makefile $(REMOTE):$(SERVER_DIR) 
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env && rm -f $(DOTENV_FILE)'
@@ -326,6 +330,8 @@ course.push-all.%:
 	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd
 	#$(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 	# make update-components.$*
+course.push-all.all:
+	@for course in $(COURSES); do make course.push-all.$$course; done
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -507,8 +513,9 @@ env.show:
 	env | grep RUNESTONE
 
 db.backup:
-	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
-	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+	mkdir -p backup/db
+	$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
+	du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
 
 
 
@@ -539,15 +546,15 @@ db.restore.%:
 	@echo Restoring SQL dump $* ...
 	cp backup/db/$* backup/tmp.sql.gz
 	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
-	# docker stop $(RUNESTONE_CONTAINER_ID)
-	# docker stop $(PGADMIN_CONTAINER_ID)
-	# docker stop $(HASURA_CONTAINER_ID)
+	docker stop $(RUNESTONE_CONTAINER_ID)
+	docker stop $(PGADMIN_CONTAINER_ID)
+	docker stop $(HASURA_CONTAINER_ID)
 	$(DROPDB)
 	$(CREATEDB)
 	gunzip -c backup/db/$* | $(PSQL)
-	# docker start $(RUNESTONE_CONTAINER_ID)
-	# docker start $(PGADMIN_CONTAINER_ID)
-	# docker start $(HASURA_CONTAINER_ID)
+	docker start $(RUNESTONE_CONTAINER_ID)
+	docker start $(PGADMIN_CONTAINER_ID)
+	docker start $(HASURA_CONTAINER_ID)
 
 
 
@@ -556,9 +563,17 @@ db.restore.last:
 
 remote.db.restore.last:
 	make db.backup.push.last
-	$(REMOTE_DROP_DB)
+	make remote.service.stop.runestone
+	make remote.service.stop.pgadmin
+	make remote.service.stop.hasura
+
+	$(REMOTE_DROPDB)
 	$(REMOTE_CREATEDB)
+
+	make remote.service.start.runestone
 	$(SSH) 'gunzip -c $(SERVER_DIR)/backup/db/$(shell ls backup/db -1t | head -1) | $(REMOTE_PSQL)'
+	make remote.service.start.pgadmin
+	make remote.service.start.hasura
 
 # remote.db.restore.last:
 # 	remote.db.restore.$(shell ls backup/db -1t | head -1)

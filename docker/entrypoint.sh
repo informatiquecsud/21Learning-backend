@@ -8,7 +8,7 @@ info () {
 }
 
 # This file will exist if we've initialized postgres
-stamp=/var/lib/postgresql/9.6/main/initialized.stamp
+stamp=/var/lib/postgresql/initialized.stamp
 
 # Ensure the user starting the container has provided a password
 if [ -z "$POSTGRES_PASSWORD" ]
