@@ -1,0 +1,10 @@
+mutation removeUserByUsername($username: String!) {
+  delete_auth_user(where: {username: {_eq: $username}}) {
+    affected_rows
+    returning {
+      id
+      username
+      email
+    }
+  }
+ }

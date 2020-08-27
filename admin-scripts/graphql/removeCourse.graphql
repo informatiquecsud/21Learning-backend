@@ -1,0 +1,5 @@
+mutation removeCourse($courseName: String!) {
+  delete_courses(where: {course_name: {_eq: $courseName}}) {
+    affected_rows
+  }
+}

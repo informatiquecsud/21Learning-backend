@@ -1,0 +1,8 @@
+query getChildCourses($courseName: String!) {
+  courses(where: {course_name: {_eq: $courseName}}) {
+    child_courses {
+      id
+      course_name
+    }
+  }
+}

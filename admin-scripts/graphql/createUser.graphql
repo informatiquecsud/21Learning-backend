@@ -1,0 +1,27 @@
+mutation createUser(
+  $username: String!
+  $password: String!
+  $first_name: String!
+  $last_name: String!
+  $email: String!
+  $course_name: String!
+  
+) {
+  insert_auth_user_one(
+    object: {
+      username: $username
+      request_resetpw: $password
+      first_name: $first_name
+      last_name: $last_name
+      email: $email
+      course_name: $course_name
+    }
+  ) {
+    id
+    username
+    last_name
+    first_name
+    email
+    course_name
+  }
+}

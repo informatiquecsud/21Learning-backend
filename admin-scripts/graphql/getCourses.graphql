@@ -1,0 +1,9 @@
+query {
+  courses {
+    id
+    course_name
+    base_course
+    institution
+    python3
+  }
+}

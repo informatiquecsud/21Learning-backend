@@ -1,0 +1,12 @@
+mutation addUserToCourse($userId: Int!, $courseId: Int!) {
+    insert_user_courses_one(object: { user_id: $userId, course_id: $courseId }) {
+        auth_user {
+            id
+            username
+        }
+        course {
+            id
+            course_name
+        }
+    }
+}
