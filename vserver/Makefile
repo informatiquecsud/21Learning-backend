@@ -52,7 +52,7 @@ ssh-register-public-key:
 	cat ~/.ssh/id_rsa.pub | $(SSH) 'cat >> .ssh/authorized_keys'
 
 setup-ssh:
-	$(SSH) 'mkdir .ssh && touch .ssh/authorized_keys'
+	$(SSH) 'mkdir -p .ssh && touch .ssh/authorized_keys'
 
 clean-ssh:
 	rm -f ~/.ssh/known_hosts
@@ -69,3 +69,6 @@ reboot:
 # usefull to update entry, especially on HyperV
 update-dns:
 	$(SSH) 'echo "nameserver 8.8.8.8" >> /etc/resolv.conf && service networking restart'
+
+disk.free:
+	df -h | grep sda1
