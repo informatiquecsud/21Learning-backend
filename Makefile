@@ -94,14 +94,15 @@ ifdef ENV_NAME
 include $(ENV_NAME).context.Makefile
 endif
 
-
+git.install-config:
+	curl https://gist.githubusercontent.com/donnerc/fc0312cc3431d9b3e675/raw/821a897e08e8e983a8fdf8add57e6b8cded5ed40/git-config.sh | sh
 
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
 	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
 howto-load-dotenv.envname:
 howto-load-dotenv.%:
-	@echo 'set -a; source .env.$* set +a' | clip.exe
+	@echo 'set -a; source .env.$* set +a' | cat
 
 echo-compose-options:
 	@echo 'Compose options is: ' $(COMPOSE_OPTIONS)
