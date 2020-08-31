@@ -52,7 +52,8 @@ def create_client(config):
 @click.group(chain=True)
 @click.option("--verbose", is_flag=True, help="More verbose output")
 @pass_config
-def cli(config, verbose):
+@click.pass_context
+def cli(ctx, config, verbose):
     env = get_env([
         "HASURA_ADMIN_SECRET_KEY",
         "RUNESTONE_HOST"

@@ -15,8 +15,6 @@ def map_fields_to_userinfo(student):
         raise ValueError(f"User {student} has empty email")
 
     userinfo['username'] = student['E-Mail'].split('@')[0]
-    userinfo['password'] = student.get(
-        'Mot de passe', None) or generate_random_password(length=5)
     userinfo['first_name'] = student['Prénom']
     userinfo['last_name'] = student['Nom']
 
@@ -54,10 +52,11 @@ def get_user_by_userinfo(client, userinfo):
     try:
         return res['user'][0]
     except Exception as e:
+        click.echo(f"Unable to find user with userinfo: {userinfo}. Reason: {str(e)}. Result of query: {res}", err=True)
         return None
 
 
-def create_user(client, userinfo):
+def create_user_helper(client, userinfo):
     res = exec_with_fields(client, filegql('createUser'), userinfo, [
         'username',
         'password',
@@ -81,7 +80,7 @@ def remove_user_by_userinfo(client, userinfo):
     
     return res
 
-def add_student_to_course(client, course_id, userinfo):
+def add_user_to_course(client, course_id, userinfo):
     try:
         res = client.execute(filegql('addUserToCourse'), variable_values={
             'userId': userinfo['id'],
@@ -92,8 +91,27 @@ def add_student_to_course(client, course_id, userinfo):
 
         return res['insert_user_courses_one']
     except TransportQueryError as e:
-        click.echo(f"Unable to add student {userinfo} to course with id={course_id}: {str(e)}")
+        click.echo(f"Unable to add user {userinfo} to course with id={course_id}: {str(e)}")
         
 
 def remove_student_from_course(client, courseinfo, userinfo):
     pass
+
+
+def findUsers(client, userinfo):
+    res = client.execute(
+        filegql('findMatchingUser'), 
+        variable_values={
+            'username': f"%{userinfo['username']}%",
+            'emailPattern': f"%{userinfo['email']}%",
+            'firstName': f"%{userinfo['first_name']}%",
+            'lastName': f"%{userinfo['last_name']}%",
+        }
+    )
+
+    try:
+        users = res['auth_user']
+    except Exception as e:
+        users = []
+
+    return users

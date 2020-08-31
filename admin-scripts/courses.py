@@ -57,39 +57,33 @@ def commit_remove_course(client, course_name):
     return nb_affected_rows
 
 
-def course_ls_students(client, courseinfo):
-    ''' get the list of students enrolled in a course or [] if there is non '''
+def course_ls_students(client, courseinfo, config=None):
+    ''' get the list of students enrolled in a course or [] if there is none '''
     res = exec_with_fields(client, filegql('getCourseStudents'),
                            courseinfo, ['coursename', 'courseId'])
     try:
         user_courses = res['courses'][0]['user_courses']
+        print(courseinfo)
         users = [uc['auth_user'] for uc in user_courses]
         return users
     except:
         click.echo(f"Unable to get student list of course {courseinfo}")
-        return None
-
-
-def list_all_base_courses(client):
-    try:
-        res = client.execute(gql('''
-            query {
-            courses {
-                course_name
-                base_course
-            }
-            }
-        '''))
-
-        return [c for c in res['courses'] if c['course_name'] == c['base_course']]
-    except Exception as e:
-        return []
+        return Noned
 
 
 def all_base_courses(ctx, args, incomplete):
-    
+
     # config = env2config(os.environ)
     # client = create_client(config)
     # return list_all_base_courses(client)
     courses = [c for c in os.environ.get('COURSES', '').split(' ') if incomplete in c]
     return courses
+
+
+def courses_ls(client, only_base=False):
+    try:
+        res = client.execute(filegql('getCourses'))
+
+        return [c for c in res['courses'] if not only_base or c['course_name'] == c['base_course']]
+    except Exception as e:
+        return []

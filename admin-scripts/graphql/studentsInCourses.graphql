@@ -1,0 +1,15 @@
+query studentsInCourses($courses: [String!], $activeStatus: bpchar!) {
+  students: auth_user(
+    order_by: { first_name: asc, last_name: asc }
+    where: {
+      _and: { active: { _eq: $activeStatus } }
+      user_courses: { course: { course_name: { _in: $courses } } }
+    }
+  ) {
+    id
+    username
+    firstName: first_name
+    lastName: last_name
+    __typename
+  }
+}

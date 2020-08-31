@@ -1,0 +1,9 @@
+mutation makeInstructorForCourse($userId: Int!, $courseId: Int!) {
+  insert_course_instructor_one(object: {
+    course: $courseId
+    instructor: $userId
+  }) {
+    course
+    instructor
+  }
+}
