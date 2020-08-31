@@ -71,4 +71,4 @@ update-dns:
 	$(SSH) 'echo "nameserver 8.8.8.8" >> /etc/resolv.conf && service networking restart'
 
 disk.free:
-	df -h | grep sda1
+	$(SSH) 'df -h | grep sda1'

@@ -42,6 +42,7 @@ RUN_SQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGR
 REMOTE_RUN_SQL = $(SSH) 'docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)'
 RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+REMOTE_PG_DUMP = docker exec -i $(REMOTE_DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_RESTORE = docker exec -i $(DB_CONTAINER_ID) pg_restore $(POSTGRES_DB)  -U $(POSTGRES_USER) 
 PSQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 REMOTE_PSQL = docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
@@ -99,10 +100,10 @@ git.install-config:
 
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
-	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
+	@echo 'set -a; source $(DOTENV_FILE); set +a' | $(CLIP)
 howto-load-dotenv.envname:
 howto-load-dotenv.%:
-	@echo 'set -a; source .env.$* set +a' | cat
+	@echo 'set -a; source .env.$* set +a' | $(CLIP)
 
 echo-compose-options:
 	@echo 'Compose options is: ' $(COMPOSE_OPTIONS)
@@ -307,6 +308,7 @@ course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
 course.push.workshop-short:
+course.push.doi-2gy-20-21:
 course.push.coursename:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -321,6 +323,7 @@ course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
+course.push-all.doi-2gy-20-21:
 course.push-all.coursename:
 course.push-all.%: 
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -514,11 +517,6 @@ users.ls:
 env.show:
 	env | grep RUNESTONE
 
-db.backup:
-	mkdir -p backup/db
-	$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
-	du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
-
 
 
 db.git.init:
@@ -543,6 +541,24 @@ db.git.backup:
 
 test.pipe:
 	echo "salut" | docker exec -i $(DB_CONTAINER_ID) 'cat - > /home/message'
+
+db.backup:
+	mkdir -p backup/db
+	$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
+	du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+remote.db.backup.physical:
+	@mkdir -p backup/db/physical
+	#$(SSH) 'docker exec $(REMOTE_DB_CONTAINER_ID) tar Ccf /var/lib/postgresql - data | gzip > backup/db/runestone-backup-copy-$(DATETIME).tar.gz'
+	$(SSH) 'docker cp $(REMOTE_DB_CONTAINER_ID):/var/lib/postgresql/data $(SERVER_DIR)/backup/db/data'
+
+
+remote.db.backup.dump:
+	@mkdir -p backup/db
+	@$(SSH) '$(REMOTE_PG_DUMP) | gzip' | pv > backup/db/runestone-backup-$(DATETIME).sql.gz
+	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+
 db.restore.targz-name:
 db.restore.%:
 	@echo Restoring SQL dump $* ...
@@ -576,6 +592,8 @@ remote.db.restore.last:
 	$(SSH) 'gunzip -c $(SERVER_DIR)/backup/db/$(shell ls backup/db -1t | head -1) | $(REMOTE_PSQL)'
 	make remote.service.start.pgadmin
 	make remote.service.start.hasura
+
+
 
 # remote.db.restore.last:
 # 	remote.db.restore.$(shell ls backup/db -1t | head -1)
