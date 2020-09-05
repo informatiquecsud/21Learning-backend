@@ -603,9 +603,9 @@ db.backup.push.last:
 	$(RSYNC) -raz backup/db/$(shell ls backup/db -1t | head -1) $(REMOTE):$(SERVER_DIR)/backup/db/ --progress
 
 
+db.backup.from-remote: remote.db.backup.dump
 
-
-db.backup.from-remote: remote.db.backup db.get-backup
+deprecated.db.backup.from-remote: remote.db.backup db.get-backup
 
 db.restore.from-remote: db.backup.from-remote db.restore.last
 

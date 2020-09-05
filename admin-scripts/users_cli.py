@@ -13,6 +13,24 @@ from utils import charsets
 ## import students
 ###################
 
+# TODO: Has some bugs and doesn't work
+@cli.command()
+@click.option("--coursename", "-c", type=str, help="course to add the user to")
+@click.argument("username", type=str)
+@pass_config
+def user_add_to_course(config, coursename, username):
+    client = create_client(config)
+    userinfo = {'username': username}
+    try:
+        res = add_user_to_course_by_name(client, coursename, userinfo)
+        if config.verbose: 
+            click.echo(f"Successfully added user with username={username} to course {coursename}")
+    except Exception as e:
+        click.echo(f"Unable to add user '{username}'' to course '{coursename}''. Reason: {str(e)}", err=True)
+
+
+
+
 
 @cli.command()
 @click.option("--csvfile", type=click.Path(), help="path to the csv file to load the class from")
@@ -185,7 +203,7 @@ def inituser(
 @click.option("--username", help="Username, must be unique")
 @click.option("--password", help="password - plaintext -- sorry")
 @click.option("--random-password", type=str, is_flag=True, default=False, help="generates random password")
-@click.option("--output-format", type=click.Choice(['csv', 'json'], case_sensitive=False), help="format to print the new password")
+@click.option("--output-format", type=click.Choice(['csv', 'json'], case_sensitive=False), default='csv', help="format to print the new password")
 @click.option("--password-length", type=int, default=5, help="number of chars in the password to generate", show_default=True)
 @click.option("--alphabet", type=click.Choice(charsets.keys()), default='digits', help="charaset to choose from")
 @pass_config
@@ -209,6 +227,15 @@ def resetpw(config, username, password, random_password, output_format, password
 
         if res['update_auth_user']['affected_rows'] > 0:
             click.echo(f"Password successfully changed for user {userinfo['username']}")
+            if output_format == 'csv':
+                click.echo(f"{username};{password}")
+            elif output_format == 'json':
+                userdict = {}
+                userdict['username'] = username
+                uesrdict['password'] = password
+                click.echo({'user': userdict})
+                
+
         else:
             click.echo(f"No password changed for user {userinfo['username']}", err=True)
 
@@ -216,19 +243,19 @@ def resetpw(config, username, password, random_password, output_format, password
         click.echo(f"Error while trying to change password: {str(e)}")
 
 
-@cli.command()
-@click.argument("course", type=str)
-@click.option("--password-length", type=int, default=5, help="number of chars in the password to generate", show_default=True)
-@click.option("--alphabet", type=click.Choice(charsets.keys()), default='digits', help="charaset to choose from")
-@click.option("--password", type=str, help="password for every user in the course")
-@pass_config
-def resetpw_for_course(config, course, password_length, alphabet, password):
-    # get the user list from the course `course`
+# @cli.command()
+# @click.argument("course", type=str)
+# @click.option("--password-length", type=int, default=5, help="number of chars in the password to generate", show_default=True)
+# @click.option("--alphabet", type=click.Choice(charsets.keys()), default='digits', help="charaset to choose from")
+# @click.option("--password", type=str, help="password for every user in the course")
+# @pass_config
+# def resetpw_for_course(config, course, password_length, alphabet, password):
+#     # get the user list from the course `course`
 
-    # for each user, reset the password
-    password = password or generate_random_password(
-        length=password_length, alphabet=alphabet)
-    if config.verbose:
-        print('generated password', password)
+#     # for each user, reset the password
+#     password = password or generate_random_password(
+#         length=password_length, alphabet=alphabet)
+#     if config.verbose:
+#         print('generated password', password)
 
 

@@ -51,6 +51,17 @@ def get_user_by_userinfo(client, userinfo):
     ])
     try:
         return res['user'][0]
+
+        # the firstname / lastname may have been changed in the meantime...
+        if res['user'] == []:
+            # redo the query without taking into account firstname and lastname
+            res = exec_with_fields(client, filegql('getUserByUserinfo'), userinfo, [
+                'username',
+                'email',
+                'id'
+            ])
+
+
     except Exception as e:
         click.echo(f"Unable to find user with userinfo: {userinfo}. Reason: {str(e)}. Result of query: {res}", err=True)
         return None
@@ -80,6 +91,7 @@ def remove_user_by_userinfo(client, userinfo):
     
     return res
 
+
 def add_user_to_course(client, course_id, userinfo):
     try:
         res = client.execute(filegql('addUserToCourse'), variable_values={
@@ -87,11 +99,25 @@ def add_user_to_course(client, course_id, userinfo):
             'courseId': course_id
         })
 
-        print(res)
+        #print(res)
 
         return res['insert_user_courses_one']
     except TransportQueryError as e:
         click.echo(f"Unable to add user {userinfo} to course with id={course_id}: {str(e)}")
+
+def add_user_to_course_by_name(client, coursename, userinfo):
+    try:
+        res = client.execute('addUserToCourseByName', variable_values={
+            'coursename':  coursename,
+            'username': userinfo['username']
+        })
+
+        return res['insert_user_courses_one']
+    except TransportQueryError as e:
+        click.echo(f"Unable to add user {userinfo} to course with id={course_id}: {str(e)}")
+
+
+
         
 
 def remove_student_from_course(client, courseinfo, userinfo):
