@@ -11,14 +11,16 @@ service.up.db:
 service.up.runestone:
 service.up.pgadmin:
 service.up.hasura:
+service.up.new:
 service.up.%:
-	$(COMPOSE) up -d $*
+	$(COMPOSE) --compatibility up -d $*
 
 service.build.service-name:
 service.build.db:
 service.build.runestone:
 service.build.pgadmin:
 service.build.hasura:
+service.build.new:
 service.build.%:
 	$(COMPOSE) build $*
 
@@ -52,7 +54,7 @@ service.full-restart.%:
 service.restart.service-name:
 service.restart.%: 
 	make service.stop.$* 
-	make service.start.$*
+	make service.up.$*
 
 
 

@@ -10,6 +10,7 @@ services:
       - "80"
     network_mode: "bridge"
     env_file: .env
+
     environment:
       WEB2PY_CONFIG: "production"
       WEB2PY_ADMIN_SECURITY_BYPASS: "false"
@@ -20,6 +21,11 @@ services:
       LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
       PGOPTIONS: "-c 'custom.web2py_private_key=${WEB2PY_PRIVATE_KEY}'"
       WEB2PY_PASSWORD: "${WEB2PY_PASSWORD}"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.7'
+          memory: 750M
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -59,6 +65,20 @@ services:
     volumes:
       - ./dashboard/dist/spa:/usr/share/nginx/html
 
+  new:
+    image: "nginx:latest"
+    restart: always
+    network_mode: "bridge"
+    ports:
+      - "80"
+    env_file: .env
+    environment:
+      VIRTUAL_HOST: "new.${RUNESTONE_HOST}"
+      LETSENCRYPT_HOST: "new.${RUNESTONE_HOST}"
+      LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
+    volumes:
+      - ./newfrontend/dist/spa:/usr/share/nginx/html
+
   hasura:
     ports:
       - "8080"
@@ -74,6 +94,8 @@ services:
       VIRTUAL_HOST: "api.${RUNESTONE_HOST}"
       LETSENCRYPT_HOST: "api.${RUNESTONE_HOST}"
       LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
+
     
 
 #  hasura-backend-plus:
