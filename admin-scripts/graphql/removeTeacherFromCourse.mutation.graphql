@@ -1,0 +1,19 @@
+mutation removeTeacherFromCourse($coursename: String!, $username: String!) {
+    delete_course_instructor(
+        where: {
+            auth_user: { username: { _eq: $username } }
+            courseByCourse: { course_name: { _eq: $coursename } }
+        }
+    ) {
+        affected_rows
+        returning {
+            id
+            auth_user {
+                username
+            }
+            courseByCourse {
+                course_name
+            }
+        }
+    }
+}

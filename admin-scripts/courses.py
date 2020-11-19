@@ -84,6 +84,8 @@ def courses_ls(client, only_base=False):
     try:
         res = client.execute(filegql('getCourses'))
 
+        print("res", res)
+
         return [c for c in res['courses'] if not only_base or c['course_name'] == c['base_course']]
     except Exception as e:
         return []

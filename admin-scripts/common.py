@@ -3,7 +3,8 @@ import os
 from collections import namedtuple
 
 
-from gql import Client, AIOHTTPTransport
+from gql import Client, gql
+from gql.transport.aiohttp import AIOHTTPTransport
 
 
 class Config(object):
