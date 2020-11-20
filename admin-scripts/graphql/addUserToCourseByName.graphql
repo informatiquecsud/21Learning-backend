@@ -1,0 +1,25 @@
+mutation addUserToCourse($coursename: String!, $username: String!) {
+  insert_user_courses_one(
+    object: {
+      course: {
+        data: { course_name: $coursename }
+        on_conflict: {
+          constraint: courses_course_name_key
+          update_columns: [course_name]
+        }
+      }
+      auth_user: { data: { username: $username } on_conflict: {
+        constraint: unique_user
+        update_columns: [username]
+      } }
+    }
+  ) {
+    id
+    course {
+      course_name
+    }
+    auth_user {
+      username
+    }
+  }
+}

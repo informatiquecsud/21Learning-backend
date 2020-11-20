@@ -1,0 +1,24 @@
+query listStudentsAndTheirCoursesByCoursename($coursename: String, $courseId: Int) {
+    courses(where: { course_name: { _like: $coursename }, id: { _eq: $courseId } }) {
+        id
+        course_name
+        user_courses(order_by: { auth_user: { last_name: asc } }) {
+            auth_user {
+                id
+                username
+                first_name
+                last_name
+                user_courses {
+                    course {
+                        course_name
+                        course_instructors {
+                            auth_user {
+                                username
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

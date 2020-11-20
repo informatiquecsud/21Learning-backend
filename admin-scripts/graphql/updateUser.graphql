@@ -1,0 +1,40 @@
+# not very usefull. Every mutation is special
+
+mutation updateUser(
+    $username: String!
+    $password: String!
+    $first_name: String!
+    $last_name: String!
+    $email: String!
+    $course_name: String!
+    $course_id: Int!
+    $id: Int!
+) {
+    update_auth_user(
+        where: {
+            email: { _eq: $email }
+            username: { _eq: $username }
+            id: { _eq: $id }
+            first_name: { _eq: $first_name }
+            last_name: { _eq: $last_name }
+        }
+        _set: {
+            first_name: $first_name
+            last_name: $last_name
+            email: $email
+            course_name: $course_name
+            course_id: $course_id
+            request_resetpw: $password
+        }
+    ) {
+        affected_rows
+        returning {
+            id
+            username
+            last_name
+            first_name
+            email
+            course_name
+        }
+    }
+}

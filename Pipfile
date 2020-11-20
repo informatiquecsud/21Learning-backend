@@ -32,3 +32,4 @@ SQLAlchemy = ">=1.0.14"
 
 [requires]
 python_version = "3.6"
+

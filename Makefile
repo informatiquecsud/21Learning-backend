@@ -42,11 +42,15 @@ RUN_SQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGR
 REMOTE_RUN_SQL = $(SSH) 'docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)'
 RUN_SQL_T = docker exec -it $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_DUMP = docker exec -i $(DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+REMOTE_PG_DUMP = docker exec -i $(REMOTE_DB_CONTAINER_ID) pg_dump -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 PG_RESTORE = docker exec -i $(DB_CONTAINER_ID) pg_restore $(POSTGRES_DB)  -U $(POSTGRES_USER) 
 PSQL = docker exec -i $(DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 REMOTE_PSQL = docker exec -i $(REMOTE_DB_CONTAINER_ID) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 DROPDB = docker exec -i $(DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
 CREATEDB = docker exec -i $(DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
+
+REMOTE_DROPDB = docker exec -i $(REMOTE_DB_CONTAINER_ID) dropdb $(POSTGRES_DB) -U $(POSTGRES_USER)
+REMOTE_CREATEDB = docker exec -i $(REMOTE_DB_CONTAINER_ID) createdb -T template0 $(POSTGRES_DB) -U $(POSTGRES_USER)
 
 COMPOSE_PGADMIN = -f docker-compose-pgadmin.yml
 
@@ -91,13 +95,15 @@ ifdef ENV_NAME
 include $(ENV_NAME).context.Makefile
 endif
 
-
+git.install-config:
+	curl https://gist.githubusercontent.com/donnerc/fc0312cc3431d9b3e675/raw/821a897e08e8e983a8fdf8add57e6b8cded5ed40/git-config.sh | sh
 
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
-	@echo 'set -a; source $(DOTENV_FILE); set +a' | clip.exe
+	@echo 'set -a; source $(DOTENV_FILE); set +a' | $(CLIP)
+howto-load-dotenv.envname:
 howto-load-dotenv.%:
-	@echo 'set -a; source .env.$* set +a' | clip.exe
+	@echo 'set -a; source .env.$* set +a' | $(CLIP)
 
 echo-compose-options:
 	@echo 'Compose options is: ' $(COMPOSE_OPTIONS)
@@ -121,7 +127,7 @@ push-old:
 	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
-push:
+push-env:
 	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR)/$(DOTENV_FILE) 
 	$(RSYNC) -r *.Makefile $(REMOTE):$(SERVER_DIR) 
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env && rm -f $(DOTENV_FILE)'
@@ -133,8 +139,9 @@ ssh:
 	$(SSH) -F ./.ssh.config
 
 
-dashboard.sync:
-	@rsync -ra ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ ./dashboard/dist/spa/ --progress --delete
+dashboard.push:
+	@$(RSYNC) -raz ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ $(SSH_USER)@$(SSH_HOST):$(SERVER_DIR)/dashboard/dist/spa/ --progress --delete
+	@$(RSYNC) -raz webtj/ $(SSH_USER)@$(SSH_HOST):$(SERVER_DIR)/dashboard/dist/spa/statics/webtj/ --progress --delete
 
 
 start:
@@ -301,6 +308,8 @@ course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
 course.push.workshop-short:
+course.push.doi-2gy-20-21:
+course.push.doi-1gy-2021-donc:
 course.push.coursename:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -315,6 +324,7 @@ course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
+course.push-all.doi-2gy-20-21:
 course.push-all.coursename:
 course.push-all.%: 
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -326,6 +336,8 @@ course.push-all.%:
 	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd
 	#$(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 	# make update-components.$*
+course.push-all.all:
+	@for course in $(COURSES); do make course.push-all.$$course; done
 
 # TODO: use a better strategy => webhooks from gitlab ... requires a special api
 # on the server
@@ -506,10 +518,6 @@ users.ls:
 env.show:
 	env | grep RUNESTONE
 
-db.backup:
-	@$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
-	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
-
 
 
 db.git.init:
@@ -534,20 +542,38 @@ db.git.backup:
 
 test.pipe:
 	echo "salut" | docker exec -i $(DB_CONTAINER_ID) 'cat - > /home/message'
+
+db.backup:
+	mkdir -p backup/db
+	$(PG_DUMP) | gzip > backup/db/runestone-backup-$(DATETIME).sql.gz
+	du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+remote.db.backup.physical:
+	@mkdir -p backup/db/physical
+	#$(SSH) 'docker exec $(REMOTE_DB_CONTAINER_ID) tar Ccf /var/lib/postgresql - data | gzip > backup/db/runestone-backup-copy-$(DATETIME).tar.gz'
+	$(SSH) 'docker cp $(REMOTE_DB_CONTAINER_ID):/var/lib/postgresql/data $(SERVER_DIR)/backup/db/data'
+
+
+remote.db.backup.dump:
+	@mkdir -p backup/db
+	@$(SSH) '$(REMOTE_PG_DUMP) | gzip' | pv > backup/db/runestone-backup-$(DATETIME).sql.gz
+	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
+
+
 db.restore.targz-name:
 db.restore.%:
 	@echo Restoring SQL dump $* ...
 	cp backup/db/$* backup/tmp.sql.gz
 	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
-	# docker stop $(RUNESTONE_CONTAINER_ID)
-	# docker stop $(PGADMIN_CONTAINER_ID)
-	# docker stop $(HASURA_CONTAINER_ID)
+	docker stop $(RUNESTONE_CONTAINER_ID)
+	docker stop $(PGADMIN_CONTAINER_ID)
+	docker stop $(HASURA_CONTAINER_ID)
 	$(DROPDB)
 	$(CREATEDB)
 	gunzip -c backup/db/$* | $(PSQL)
-	# docker start $(RUNESTONE_CONTAINER_ID)
-	# docker start $(PGADMIN_CONTAINER_ID)
-	# docker start $(HASURA_CONTAINER_ID)
+	docker start $(RUNESTONE_CONTAINER_ID)
+	docker start $(PGADMIN_CONTAINER_ID)
+	docker start $(HASURA_CONTAINER_ID)
 
 
 
@@ -556,9 +582,19 @@ db.restore.last:
 
 remote.db.restore.last:
 	make db.backup.push.last
-	$(REMOTE_DROP_DB)
+	make remote.service.stop.runestone
+	make remote.service.stop.pgadmin
+	make remote.service.stop.hasura
+
+	$(REMOTE_DROPDB)
 	$(REMOTE_CREATEDB)
+
+	make remote.service.start.runestone
 	$(SSH) 'gunzip -c $(SERVER_DIR)/backup/db/$(shell ls backup/db -1t | head -1) | $(REMOTE_PSQL)'
+	make remote.service.start.pgadmin
+	make remote.service.start.hasura
+
+
 
 # remote.db.restore.last:
 # 	remote.db.restore.$(shell ls backup/db -1t | head -1)
@@ -568,9 +604,9 @@ db.backup.push.last:
 	$(RSYNC) -raz backup/db/$(shell ls backup/db -1t | head -1) $(REMOTE):$(SERVER_DIR)/backup/db/ --progress
 
 
+db.backup.from-remote: remote.db.backup.dump
 
-
-db.backup.from-remote: remote.db.backup db.get-backup
+deprecated.db.backup.from-remote: remote.db.backup db.get-backup
 
 db.restore.from-remote: db.backup.from-remote db.restore.last
 
@@ -654,7 +690,11 @@ update-webtj:
 	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
 	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
 	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python3.js > webtj/javascripts/ace/mode-python3.js
+	mkdir -p webtj/html/
+	@curl https://webtigerjython.ethz.ch/html/debugger-pane.html > webtj/html/debugger-pane.html
+
 	tar -czf webtj.tar.gz webtj
+
 	rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
 	@for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
 	#@make update-components

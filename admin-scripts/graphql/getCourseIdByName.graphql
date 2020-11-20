@@ -1,0 +1,5 @@
+query getCourseIdByBame($courseName: String!) {
+  courses(where: {course_name: {_eq: $courseName}}) {
+    id
+  }
+}

@@ -1,0 +1,14 @@
+query getCourseStudents($coursename: String, $courseId: Int) {
+    courses(where: { course_name: { _like: $coursename }, id: { _eq: $courseId } }) {
+        id
+        course_name
+        user_courses {
+            auth_user {
+                id
+                username
+                first_name
+                last_name
+            }
+        }
+    }
+}

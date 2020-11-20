@@ -1,0 +1,19 @@
+mutation removeUserFromCourse($coursename: String!, $username: String!) {
+    delete_user_courses(
+        where: {
+            auth_user: { username: { _eq: $username } }
+            course: { course_name: { _eq: $coursename } }
+        }
+    ) {
+        affected_rows
+        returning {
+            id
+            auth_user {
+                username
+            }
+            course {
+                course_name
+            }
+        }
+    }
+}

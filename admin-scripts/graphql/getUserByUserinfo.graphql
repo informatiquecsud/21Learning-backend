@@ -1,0 +1,24 @@
+query getUserByUserinfo(
+    $email: String
+    $username: String
+    $id: Int
+    $first_name: String
+    $last_name: String
+) {
+    user: auth_user(
+        where: {
+            email: { _eq: $email }
+            username: { _eq: $username }
+            id: { _eq: $id }
+            first_name: { _eq: $first_name }
+            last_name: { _eq: $last_name }
+        }
+    ) {
+        id
+        username
+        last_name
+        first_name
+        course_name
+        email
+    }
+}

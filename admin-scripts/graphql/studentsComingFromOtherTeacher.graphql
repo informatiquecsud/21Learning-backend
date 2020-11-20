@@ -1,0 +1,26 @@
+query studentsComingFromOtherTeacher {
+  auth_user(
+    order_by: { last_name: asc, first_name: asc }
+
+    where: {
+      user_courses: {
+        course: {
+          course_name: {
+            #_in: ["doi-2gy03", "doi-2gy05", "doi-2gy07", "doi-2gy10"]
+            _in: ["doi-2gy07"]
+            _nin: [
+              "doi-1920-1gy5"
+              "doi-1920-1gy7"
+              "doi-1920-1gy8"
+              "doi-1920-1gy11"
+            ]
+          }
+        }
+      }
+    }
+  ) {
+    username
+    firstName: first_name
+    lastName: last_name
+  }
+}

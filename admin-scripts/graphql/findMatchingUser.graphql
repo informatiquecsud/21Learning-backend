@@ -1,0 +1,13 @@
+query findMatchingUser($username: String!, $emailPattern: String, $firstName: String, $lastName: String) {
+  auth_user(where: {
+    username: {_like: $username}
+    email: {_like: $emailPattern}
+    first_name: {_like: $firstName}
+    last_name: {_like: $lastName}
+  }) {
+    id
+    username
+    first_name
+    last_name
+  }
+}
