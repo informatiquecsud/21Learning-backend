@@ -1,3 +1,7 @@
+# load active environment
+include .env
+export $(shell sed 's/=.*//' .env)
+
 SSH_USER=root
 SSH_PORT=22
 SSH_HOST=$(RUNESTONE_HOST)
@@ -97,6 +101,17 @@ endif
 
 git.install-config:
 	curl https://gist.githubusercontent.com/donnerc/fc0312cc3431d9b3e675/raw/821a897e08e8e983a8fdf8add57e6b8cded5ed40/git-config.sh | sh
+
+
+# switch active environment
+env.use.contextname:
+env.use.local:
+env.use.new:
+env.use.%:
+	@echo "Using environment '$*'"
+	@ln -sf .env.$* .env
+env.active:
+	@ls -al .env
 
 # shows hot to load the env vars defined in .env
 howto-load-dotenv:
@@ -302,6 +317,11 @@ course.vuepress.push.einfach-informatik-zusatz-material:
 course.vuepress.push.%:
 	$(SSH) 'mkdir -p $(SERVER_DIR)/books/$*/published/$*'
 	$(RSYNC) -raz books/$*/build/html/* $(REMOTE):$(SERVER_DIR)/books/$*/published/$*
+
+course.live.doi-1gy-2021-donc:
+course.live.doi-2gy-20-21:
+course.live.%:
+	watchmedo shell-command --debug-force-polling -p  "*.rst" -R -c 'make course.push.$*'
 	
 course.push.oxocard101:
 course.push.overview:
@@ -644,15 +664,15 @@ questions.clean.%:
 #######################################################################
 ### auto-completion for table operations
 #######################################################################
-include table-completions.Makefile
+# include table-completions.Makefile
 
-table-completions.update:
+# table-completions.update:
 
 
 #######################################################################
 # Auto-completion for sql queries
 #######################################################################
-include query-completions.Makefile
+# include query-completions.Makefile
 
 
 # allows to update the query completion file

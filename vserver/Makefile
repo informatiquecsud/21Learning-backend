@@ -8,7 +8,7 @@ ROOT = root@$(HOST)
 SYNC = rsync -raz --delete --progress $(ROOT)
 
 ### Docker stuff
-DOCKER_COMPOSE_VERSION=1.26.2
+DOCKER_COMPOSE_VERSION=1.27.4
 DOCKER_MACHINE_VERSION=v0.16.0
 
 upgrade:
@@ -16,8 +16,8 @@ upgrade:
 	$(SSH) apt-get upgrade -y --fix-missing
 
 init: upgrade 
-	$(SSH) apt-get -y install curl rsync git build-essential htop bash-completion --fix-missing
-	rsync .bashrc.template root@($(HOST):~/.bashrc
+	$(SSH) apt-get -y install python3 python-is-python3 curl rsync git build-essential htop bash-completion --fix-missing
+	rsync .bashrc.template root@$(HOST):~/.bashrc
 	
 # This provisions the remote machine with docker using docker-machine
 docker.setup-machine:
@@ -34,7 +34,7 @@ docker-compose.setup:
 # This provisions the remote machine with docker using custom scripts
 docker.setup: init
 	cat docker/install.sh | $(SSH) sh
-	make docker-compose.setup	
+	make docker-compose.setup
 
 
 docker.start:
