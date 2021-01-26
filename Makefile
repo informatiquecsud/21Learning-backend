@@ -712,9 +712,9 @@ update-webtj:
 	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python3.js > webtj/javascripts/ace/mode-python3.js
 	mkdir -p webtj/html/
 	@curl https://webtigerjython.ethz.ch/html/debugger-pane.html > webtj/html/debugger-pane.html
-
+	@curl https://webtigerjython.ethz.ch/html/info.html > webtj/html/info.html
+	@curl https://webtigerjython.ethz.ch/stylesheets/info.css > webtj/stylesheets/info.css
 	tar -czf webtj.tar.gz webtj
-
 	rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
 	@for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
 	#@make update-components
