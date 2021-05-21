@@ -330,6 +330,7 @@ course.push.concepts-programmation:
 course.push.workshop-short:
 course.push.doi-2gy-20-21:
 course.push.doi-1gy-2021-donc:
+course.push.fopp:
 course.push.coursename:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -345,6 +346,7 @@ course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
 course.push-all.doi-2gy-20-21:
+course.push-all.fopp:
 course.push-all.coursename:
 course.push-all.%: 
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
@@ -578,7 +580,7 @@ remote.db.backup.dump:
 	@mkdir -p backup/db
 	@$(SSH) '$(REMOTE_PG_DUMP) | gzip' | pv > backup/db/runestone-backup-$(DATETIME).sql.gz
 	@du -sh backup/db/runestone-backup-$(DATETIME).sql.gz
-
+	@cp -rf backup/db/runestone-backup-$(DATETIME).sql.gz ~/cedon/OneDrive/runestone-db-backups
 
 db.restore.targz-name:
 db.restore.%:
