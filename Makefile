@@ -328,8 +328,9 @@ course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
 course.push.workshop-short:
-course.push.doi-2gy-20-21:
-course.push.doi-1gy-2021-donc:
+course.push.doi-2gy-2122-donc:
+course.push.doi-1gy-2122-donc:
+course.push.oci-2123-donc:
 course.push.fopp:
 course.push.coursename:
 course.push.%:
