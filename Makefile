@@ -273,6 +273,9 @@ course.build.coursename:
 course.build.oxocard101:
 course.build.overview:
 course.build.doi:
+course.build.doi-2gy-2122-donc:
+course.build.doi-1gy-2122-donc:
+course.build.oci-2123-donc:
 course.build.%:
 	echo $(RUNESTONE_CONTAINER_ID)
 	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
@@ -282,6 +285,9 @@ course.build.%:
 course.build-all.coursename:
 course.build-all.oxocard101:
 course.build-all.overview:
+course.build-all.doi-2gy-2122-donc:
+course.build-all.doi-1gy-2122-donc:
+course.build-all.oci-2123-donc:
 course.build-all.doi:
 course.build-all.%:
 	@echo $(RUNESTONE_CONTAINER_ID)
@@ -346,7 +352,9 @@ course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
-course.push-all.doi-2gy-20-21:
+course.push-all.doi-2gy-2122-donc:
+course.push-all.doi-1gy-2122-donc:
+course.push-all.oci-2123-donc:
 course.push-all.fopp:
 course.push-all.coursename:
 course.push-all.%: 
@@ -693,6 +701,9 @@ include course-management-sql.Makefile
 #######################################################################
 update-components.doi:
 update-components.concepts-programmation:
+update-components.doi-2gy-2122-donc:
+update-components.doi-1gy-2122-donc:
+update-components.oci-2123-donc:
 update-components.course-name:
 update-components.%:
 	# sync dev components repo to 21learning server
