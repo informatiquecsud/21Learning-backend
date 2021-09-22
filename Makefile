@@ -131,16 +131,20 @@ list:
 push-old:
 	$(RSYNC) -raz . $(REMOTE):$(SERVER_DIR) \
 		--progress \
-		--exclude=.git \
+		--exclude=.git* \
 		--exclude=venv \
 		--exclude=ubuntu \
 		--exclude=__pycache__ \
 		--exclude=backup \
 		--exclude=databases \
+		--exclude=dashboard \
+		--exclude=webtj \
 		--exclude=data/pass* \
-		--exclude=books
-	$(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
-	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
+		--exclude=books \
+		--exclude=.env*
+
+# $(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
+# $(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
 push-env:
 	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR)/$(DOTENV_FILE) 
@@ -242,7 +246,7 @@ pgadmin-restart:
 pgadmin-rm:
 	$(COMPOSE) rm pgadmin
 pgadmin-up:
-	$(COMPOSE) up pgadmin
+	$(COMPOSE) up -d pgadmin
 
 
 	
@@ -715,6 +719,7 @@ update-components.%:
 
 update-components:
 	@for course in $(COURSES); do echo "Updating course $$course"; make update-components.$$course; echo "done"; done
+	@echo "Courses updated: " $(COURSES)
 
 update-webtj:
 	wget -r https://webtigerjython.ethz.ch/

@@ -44,7 +44,7 @@ service.rm.%:
 service.logs.service-name:
 service.logs.runestone:
 service.logs.%:
-	$(COMPOSE) logs -f  $*
+	$(COMPOSE) logs -f --tail 30  $*
 service.full-restart.service-name:
 service.full-restart.%: 
 	make service.stop.$* 
