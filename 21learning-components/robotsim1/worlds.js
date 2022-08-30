@@ -1,0 +1,1 @@
+function createSimulation(n,t,u,e,r,i=.8,a=!0,l=!1,o=13421248){return new simulation(n,t,u,e,r,i,a,l,o)}function translate(n,t,u){return u.map((([u,e])=>[u+n,e+t]))}function runMaxTimes(n,t){let u=0;return(...e)=>u<n?(u+=1,t(...e)):null}

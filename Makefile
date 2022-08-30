@@ -146,10 +146,14 @@ push-old:
 # $(SSH) 'cd $(SERVER_DIR) && echo "RUNESTONE_REMOTE=true" >> $(DOTENV_FILE)'
 # $(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env'
 
+push.dotenv:
+	$(RSYNC) -r .env $(REMOTE):$(SERVER_DIR)/.env
+
 push-env:
 	$(RSYNC) -r $(DOTENV_FILE) $(REMOTE):$(SERVER_DIR)/$(DOTENV_FILE) 
 	$(RSYNC) -r *.Makefile $(REMOTE):$(SERVER_DIR) 
 	$(SSH) 'cd $(SERVER_DIR) && cp -f $(DOTENV_FILE) .env && chmod 600 .env && rm -f $(DOTENV_FILE)'
+	
 
 
 ssh.noconfig:	
@@ -277,8 +281,8 @@ course.build.coursename:
 course.build.oxocard101:
 course.build.overview:
 course.build.doi:
-course.build.doi-2gy-2122-donc:
-course.build.doi-1gy-2122-donc:
+course.build.doi-2gy-2223-donc:
+course.build.doi-1gy-2223-donc:
 course.build.oci-2123-donc:
 course.build.%:
 	echo $(RUNESTONE_CONTAINER_ID)
@@ -289,8 +293,8 @@ course.build.%:
 course.build-all.coursename:
 course.build-all.oxocard101:
 course.build-all.overview:
-course.build-all.doi-2gy-2122-donc:
-course.build-all.doi-1gy-2122-donc:
+course.build-all.doi-2gy-2223-donc:
+course.build-all.doi-1gy-2223-donc:
 course.build-all.oci-2123-donc:
 course.build-all.doi:
 course.build-all.%:
@@ -338,9 +342,10 @@ course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
 course.push.workshop-short:
-course.push.doi-2gy-2122-donc:
-course.push.doi-1gy-2122-donc:
+course.push.doi-2gy-2223-donc:
+course.push.doi-1gy-2223-donc:
 course.push.oci-2123-donc:
+course.push.oci-2224-donc:
 course.push.fopp:
 course.push.coursename:
 course.push.%:
@@ -356,9 +361,10 @@ course.push-all.oxocard101:
 course.push-all.overview:
 course.push-all.doi:
 course.push-all.concepts-programmation:
-course.push-all.doi-2gy-2122-donc:
-course.push-all.doi-1gy-2122-donc:
+course.push-all.doi-2gy-2223-donc:
+course.push-all.doi-1gy-2223-donc:
 course.push-all.oci-2123-donc:
+course.push-all.oci-2224-donc:
 course.push-all.fopp:
 course.push-all.coursename:
 course.push-all.%: 
@@ -701,12 +707,22 @@ query-completions.update:
 include course-management-sql.Makefile
 
 #######################################################################
+# Update skulpt
+#######################################################################
+update-skulpt:
+	@for course in $(COURSES); do echo "Updating skulpt for course $$course"; make update-skulpt.$$course; echo "done"; done
+
+update-skulpt.%:
+	rsync ./skulpt-dist/* $(REMOTE):$(SERVER_DIR)/books/$*/published/$*/_static/
+
+
+#######################################################################
 # Quick update the components from local repo
 #######################################################################
 update-components.doi:
 update-components.concepts-programmation:
-update-components.doi-2gy-2122-donc:
-update-components.doi-1gy-2122-donc:
+update-components.doi-2gy-2223-donc:
+update-components.doi-1gy-2223-donc:
 update-components.oci-2123-donc:
 update-components.course-name:
 update-components.%:
@@ -746,6 +762,16 @@ copy.webtj.coursename:
 copy.webtj.%:
 	cd $(SERVER_DIR) && rm -rf books/$*/published/$*/_static/webtj && cp -f webtj.tar.gz books/$*/published/$*/_static/ && cd books/$*/published/$*/_static/ && tar -xf webtj.tar.gz
 
+update.21learning-components:
+	for course in $(COURSES); do echo "copying new 21learning-components to course $$course ..."; make copy.21learning-components.$$course; done
+
+copy.21learning-components.coursename:
+copy.21learning-components.%:
+	rsync -raz 21learning-components $(REMOTE):$(SERVER_DIR)/books/$*/published/$*/_static/ --progress --delete
+
+push.file.filename:
+push.file.%:
+	rsync $* $(REMOTE):$(SERVER_DIR)
 
 
 #######################################################################

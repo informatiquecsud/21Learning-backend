@@ -1,0 +1,1 @@
+function createAlarm(r){var a=void 0;function e(r){r?a=setInterval((()=>playSound("bump")),600):clearInterval(a)}return e}setAlarm=createAlarm(600);

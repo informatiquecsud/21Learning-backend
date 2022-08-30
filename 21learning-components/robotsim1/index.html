@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Monde virtuel vierge</title>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 1px;
+        padding: 0;
+        background-color: #fff;
+        color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Virtual world : <code id="worldName">{worldName}</code></h3>
+    <canvas id="simulation"></canvas>
+  </body>
+
+  <script src="simpleTones.js"></script>
+  <script src="mbalarms.js"></script>
+
+  <script src="Phaser_plugin/phaser.js"></script>
+  <script src="Phaser_plugin/rayCasting.js"></script>
+  <script src="MaqueenSimulationV1-1.js"></script>
+  <script src="mbrobot.js"></script>
+  <script src="worlds.js"></script>
+
+  <script>
+    const url = new URL(window.location.href);
+    const worldToLoad = url.searchParams.get("world") || "emptyWorld";
+    document.getElementById("worldName").innerText = worldToLoad;
+    const worldScript = document.createElement("script");
+    worldScript.setAttribute("src", "worlds/" + worldToLoad + ".js");
+    document.body.appendChild(worldScript);
+  </script>
+  <!-- <script src="worlds/01_followline/index.js"></script> -->
+  <!-- <script src="demo2.js"></script> -->
+  <!-- <script src="worlds.js"></script> -->
+</html>

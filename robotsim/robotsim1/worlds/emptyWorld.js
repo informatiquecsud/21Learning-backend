@@ -1,0 +1,1 @@
+function mapLoad(a){}function mapCreate(a){new maqueenLite(a,"N°1",0,0,0)}sim=new simulation(700,500,"simulation",mapLoad,mapCreate,.6,1);
