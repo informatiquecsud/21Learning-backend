@@ -356,6 +356,7 @@ course.push.%:
 	$(SSH) 'cd $(SERVER_DIR)/books/$* && cp -f pavement-dockerserver.py pavement.py'
 	make remote.course.build.$* KEEP_EXAMS=$(KEEP_EXAMS)
 	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd $(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
+	make update-skulpt.$*
 
 course.push-all.oxocard101:
 course.push-all.overview:
@@ -377,6 +378,8 @@ course.push-all.%:
 	#@"$(KEEP_EXAMS)" = "true" || (echo "deleting exams" && $(SSH) 'cd
 	#$(SERVER_DIR)/books/$*/published/$*/examens && rm -rf *')
 	# make update-components.$*
+	make update-skulpt.$*
+	
 course.push-all.all:
 	@for course in $(COURSES); do make course.push-all.$$course; done
 
