@@ -51,6 +51,9 @@ ssh: ssh-root
 ssh-register-public-key:
 	cat ~/.ssh/id_rsa.pub | $(SSH) 'cat >> .ssh/authorized_keys'
 
+ssh-register-public-key-ed25519:
+	cat ~/.ssh/id_ed25519.pub | $(SSH) 'cat >> .ssh/authorized_keys'
+
 setup-ssh:
 	$(SSH) 'mkdir -p .ssh && touch .ssh/authorized_keys'
 

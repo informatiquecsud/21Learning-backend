@@ -99,6 +99,9 @@ ifdef ENV_NAME
 include $(ENV_NAME).context.Makefile
 endif
 
+clock-sync:
+	sudo hwclock -s
+
 git.install-config:
 	curl https://gist.githubusercontent.com/donnerc/fc0312cc3431d9b3e675/raw/821a897e08e8e983a8fdf8add57e6b8cded5ed40/git-config.sh | sh
 
@@ -284,6 +287,7 @@ course.build.doi:
 course.build.doi-2gy-2223-donc:
 course.build.doi-1gy-2223-donc:
 course.build.oci-2123-donc:
+course.build.soi:
 course.build.%:
 	echo $(RUNESTONE_CONTAINER_ID)
 	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build deploy
@@ -297,6 +301,7 @@ course.build-all.doi-2gy-2223-donc:
 course.build-all.doi-1gy-2223-donc:
 course.build-all.oci-2123-donc:
 course.build-all.doi:
+course.build-all.soi:
 course.build-all.%:
 	@echo $(RUNESTONE_CONTAINER_ID)
 	docker exec -i -w $(WEB2PY_BOOKS)/$* $(RUNESTONE_CONTAINER_ID) runestone build --all deploy
@@ -348,6 +353,7 @@ course.push.oci-2123-donc:
 course.push.oci-2224-donc:
 course.push.fopp:
 course.push.coursename:
+course.push.soi:
 course.push.%:
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
 	$(RSYNC) -raz books/$* $(REMOTE):$(SERVER_DIR)/books/ \
@@ -368,6 +374,7 @@ course.push-all.oci-2123-donc:
 course.push-all.oci-2224-donc:
 course.push-all.fopp:
 course.push-all.coursename:
+course.push-all.soi:
 course.push-all.%: 
 	echo "Pushing course $* to $(RUNESTONE_HOST) ..."
 	$(RSYNC) -raz books/$* $(REMOTE):$(SERVER_DIR)/books/ \
