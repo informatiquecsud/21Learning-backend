@@ -347,8 +347,8 @@ course.push.overview:
 course.push.doi:
 course.push.concepts-programmation:
 course.push.workshop-short:
-course.push.doi-2gy-2223-donc:
-course.push.doi-1gy-2223-donc:
+course.push.doi-2gy-2324-donc:
+course.push.doi-1gy-2324-donc:
 course.push.oci-2123-donc:
 course.push.oci-2224-donc:
 course.push.fopp:
