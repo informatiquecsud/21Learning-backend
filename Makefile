@@ -166,7 +166,7 @@ ssh:
 
 
 dashboard.push:
-	@$(RSYNC) -raz ~/21learning/runestone/dashboard/dashboard-frontend/dist/spa/ $(SSH_USER)@$(SSH_HOST):$(SERVER_DIR)/dashboard/dist/spa/ --progress --delete
+	@$(RSYNC) -raz ~/dev/21learning/runestonedashboard/dist/spa/ $(SSH_USER)@$(SSH_HOST):$(SERVER_DIR)/dashboard/dist/spa/ --progress --delete
 	@$(RSYNC) -raz webtj/ $(SSH_USER)@$(SSH_HOST):$(SERVER_DIR)/dashboard/dist/spa/statics/webtj/ --progress --delete
 
 
