@@ -3,12 +3,13 @@ version: "3"
 services:
     db:
         env_file: .env
-        network_mode: "bridge"
-
+        networks:
+            - 21learning
     runestone:
         ports:
             - "80"
-        network_mode: "bridge"
+        networks:
+            - 21learning
         env_file: .env
 
         environment:
@@ -29,7 +30,8 @@ services:
     pgadmin:
         image: dpage/pgadmin4:latest
         restart: always
-        network_mode: "bridge"
+        networks:
+            - 21learning
         links:
             - db
         ports:
@@ -48,12 +50,14 @@ services:
             - ./pgadmin/servers.json:/servers.json
 
     redis:
-        network_mode: "bridge"
+        networks:
+            - 21learning
 
     dashboard:
         image: "nginx:latest"
         restart: always
-        network_mode: "bridge"
+        networks:
+            - 21learning
         ports:
             - "80"
         env_file: .env
@@ -64,24 +68,25 @@ services:
         volumes:
             - ./dashboard/dist/spa:/usr/share/nginx/html
 
-    new:
-        image: "nginx:latest"
-        restart: always
-        network_mode: "bridge"
-        ports:
-            - "80"
-        env_file: .env
-        environment:
-            VIRTUAL_HOST: "new.${RUNESTONE_HOST}"
-            LETSENCRYPT_HOST: "new.${RUNESTONE_HOST}"
-            LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
-        volumes:
-            - ./newfrontend/dist/spa:/usr/share/nginx/html
+    # new:
+    #     image: "nginx:latest"
+    #     restart: always
+    #     network_mode: "bridge"
+    #     ports:
+    #         - "80"
+    #     env_file: .env
+    #     environment:
+    #         VIRTUAL_HOST: "new.${RUNESTONE_HOST}"
+    #         LETSENCRYPT_HOST: "new.${RUNESTONE_HOST}"
+    #         LETSENCRYPT_EMAIL: "${ADMIN_EMAIL}"
+    #     volumes:
+    #         - ./newfrontend/dist/spa:/usr/share/nginx/html
 
     hasura:
         ports:
             - "8080"
-        network_mode: "bridge"
+        networks:
+            - 21learning
         env_file: .env
         environment:
             HASURA_GRAPHQL_DATABASE_URL: "postgres://runestone:${POSTGRES_PASSWORD}@db/runestone"
@@ -108,3 +113,8 @@ services:
 #      VIRTUAL_HOST: "hbp.${RUNESTONE_HOST}"
 #      LETSENCRYPT_HOST: "hbp.${RUNESTONE_HOST}"
 #      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+
+networks:
+  21learning:
+    name: 21learning
+    external: true
