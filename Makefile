@@ -349,7 +349,7 @@ course.push.concepts-programmation:
 course.push.workshop-short:
 course.push.doi-2gy-2324-donc:
 course.push.doi-1gy-2324-donc:
-course.push.oci-2123-donc:
+course.push.oci-2325:
 course.push.oci-2224-donc:
 course.push.fopp:
 course.push.coursename:

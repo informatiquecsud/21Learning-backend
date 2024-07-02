@@ -78,3 +78,5 @@ tmp-runestone-components
 venv*
 
 books
+
+output.rst
