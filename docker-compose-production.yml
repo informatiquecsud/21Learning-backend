@@ -2,10 +2,12 @@ version: "3"
 
 services:
     db:
+        restart: always
         env_file: .env
         networks:
             - 21learning
     runestone:
+        restart: always
         ports:
             - "80"
         networks:
@@ -50,6 +52,7 @@ services:
             - ./pgadmin/servers.json:/servers.json
 
     redis:
+        restart: always
         networks:
             - 21learning
 
@@ -83,6 +86,7 @@ services:
     #         - ./newfrontend/dist/spa:/usr/share/nginx/html
 
     hasura:
+        restart: always
         ports:
             - "8080"
         networks:
@@ -113,6 +117,31 @@ services:
 #      VIRTUAL_HOST: "hbp.${RUNESTONE_HOST}"
 #      LETSENCRYPT_HOST: "hbp.${RUNESTONE_HOST}"
 #      LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+
+
+    # code:
+    #     image:  codercom/code-server:latest
+    #     restart: always
+    #     ports:
+    #         - "8080"
+    #     networks:
+    #         - 21learning
+    #     env_file: .env
+    #     environment:
+    #         VIRTUAL_HOST: "code.${RUNESTONE_HOST}"
+    #         LETSENCRYPT_HOST: "code.${RUNESTONE_HOST}"
+    #         LETSENCRYPT_EMAIL: "cedonner@gmail.com"
+    #         DOCKER_USER: "{$USER}"
+    #     volumes:
+    #         - ./dashboard/dist/spa:/usr/share/nginx/html
+
+    # # https://coder.com/docs/code-server/install#docker
+    #         # -v "$HOME/.local:/home/coder/.local" \
+    #         # -v "$HOME/.config:/home/coder/.config" \
+    #         # -v "$PWD:/home/coder/project" \
+    #         # -u "$(id -u):$(id -g)" \
+    #         # -e "DOCKER_USER=$USER" \
+    #         # codercom/code-server:latest
 
 networks:
   21learning:

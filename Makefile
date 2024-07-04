@@ -27,13 +27,13 @@ DOTENV_FILE = .env.$(ENV_NAME)
 
 CLIP = clip.exe
 
-
-RUNESTONE_CONTAINER_ID = $(shell docker ps -qf "name=_runestone")
-DB_CONTAINER_ID = $(shell docker ps -qf "name=_db")
-PGADMIN_CONTAINER_ID = $(shell docker ps -qf "name=_pgadmin")
-HASURA_CONTAINER_ID = $(shell docker ps -qf "name=_hasura")
-REMOTE_DB_CONTAINER_ID = $(shell $(SSH) 'docker ps -qf "name=_db"')
-REMOTE_RUNESTONE_CONTAINER_ID = $(shell $(SSH) 'docker ps -qf "name=_runestone"')
+# depending on the docker version, the containers are not named the same
+RUNESTONE_CONTAINER_ID = $(shell docker ps -qaf "name=runestone_1") $(shell docker ps -qaf "name=runestone-1")
+DB_CONTAINER_ID = $(shell docker ps -qaf "name=db")
+PGADMIN_CONTAINER_ID = $(shell docker ps -qaf "name=pgadmin") 
+HASURA_CONTAINER_ID = $(shell docker ps -qaf "name=hasura")
+REMOTE_DB_CONTAINER_ID = $(shell $(SSH) 'docker ps -qaf "name=db"')
+REMOTE_RUNESTONE_CONTAINER_ID = $(shell $(SSH) 'docker ps -qaf "name=_runestone"') $(shell $(SSH) 'docker ps -qaf "name=runestone-1"')
 
 DATE_FMT = "%Y-%m-%d_%H:%M:%S"
 DATETIME = $(shell date +$(DATE_FMT))
@@ -185,6 +185,12 @@ ps:
 
 up:
 	$(COMPOSE) up -d
+
+down:
+	$(COMPOSE) down
+
+restart:
+	$(COMPOSE) restart
 
 top:
 	$(COMPOSE) top
