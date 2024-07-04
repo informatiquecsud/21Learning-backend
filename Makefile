@@ -729,7 +729,7 @@ update-skulpt:
 	@for course in $(COURSES); do echo "Updating skulpt for course $$course"; make update-skulpt.$$course; echo "done"; done
 
 update-skulpt.%:
-	rsync ./skulpt-dist/* $(REMOTE):$(SERVER_DIR)/books/$*/published/$*/_static/
+	$(RSYNC) -raz ./skulpt-dist/* $(REMOTE):$(SERVER_DIR)/books/$*/published/$*/_static/ 
 
 
 #######################################################################
@@ -737,13 +737,13 @@ update-skulpt.%:
 #######################################################################
 update-components.doi:
 update-components.concepts-programmation:
-update-components.doi-2gy-2223-donc:
-update-components.doi-1gy-2223-donc:
-update-components.oci-2123-donc:
+update-components.doi-2gy-2324-donc:
+update-components.doi-1gy-2324-donc:
+update-components.oci-2325-donc:
 update-components.course-name:
 update-components.%:
 	# sync dev components repo to 21learning server
-	@rsync -raz  ../components/runestone/ $(REMOTE):$(SERVER_DIR)/tmp-runestone-components/ --progress
+	$(RSYNC) -raz  ../components/runestone/ $(REMOTE):$(SERVER_DIR)/tmp-runestone-components/ --progress
 	# sync the remote repo with the python site-packages inside runestone container
 	$(SSH) 'docker exec $(REMOTE_RUNESTONE_CONTAINER_ID) rsync -raz applications/runestone/tmp-runestone-components/ /usr/local/lib/python3.7/site-packages/runestone --progress'
 	# rebuild the course
@@ -755,16 +755,17 @@ update-components:
 
 update-webtj:
 	wget -r https://webtigerjython.ethz.ch/
-	@rm -rf webtj
-	@mv webtigerjython.ethz.ch webtj
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
-	@curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python3.js > webtj/javascripts/ace/mode-python3.js
+	@echo "salut"
+	rm -rf webtj
+	mv webtigerjython.ethz.ch webtj
+	curl https://webtigerjython.ethz.ch/javascripts/ace/theme-crimson_editor.js > webtj/javascripts/ace/theme-crimson_editor.js
+	curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python.js > webtj/javascripts/ace/mode-python.js
+	curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python2.js > webtj/javascripts/ace/mode-python2.js
+	curl https://webtigerjython.ethz.ch/javascripts/ace/mode-python3.js > webtj/javascripts/ace/mode-python3.js
 	mkdir -p webtj/html/
-	@curl https://webtigerjython.ethz.ch/html/debugger-pane.html > webtj/html/debugger-pane.html
-	@curl https://webtigerjython.ethz.ch/html/info.html > webtj/html/info.html
-	@curl https://webtigerjython.ethz.ch/stylesheets/info.css > webtj/stylesheets/info.css
+	curl https://webtigerjython.ethz.ch/html/debugger-pane.html > webtj/html/debugger-pane.html
+	curl https://webtigerjython.ethz.ch/html/info.html > webtj/html/info.html
+	curl https://webtigerjython.ethz.ch/stylesheets/info.css > webtj/stylesheets/info.css
 	tar -czf webtj.tar.gz webtj
 	rsync  webtj.tar.gz $(REMOTE):$(SERVER_DIR) --progress
 	@for course in $(COURSES); do echo "copying new WebTJ to course $$course ..."; make remote.copy.webtj.$$course; done
