@@ -8,8 +8,7 @@ ROOT = root@$(HOST)
 SYNC = rsync -raz --delete --progress $(ROOT)
 
 ### Docker stuff
-DOCKER_COMPOSE_VERSION=1.27.4
-DOCKER_MACHINE_VERSION=v0.16.0
+DOCKER_COMPOSE_VERSION=v2.28.1
 
 upgrade:
 	$(SSH) apt-get update -y
