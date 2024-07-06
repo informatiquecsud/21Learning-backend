@@ -108,6 +108,9 @@ git.install-config:
 
 # switch active environment
 env.use.contextname:
+env.use.swissmade-host:
+env.use.infomaniak-jelastic:
+env.use.vps-infocsud:
 env.use.local:
 env.use.new:
 env.use.%:
@@ -808,3 +811,8 @@ update-activecode-js-local:
 
 crontab.save:
 	$(SSH) crontab -l > backup/crontab.txt
+
+
+course.pull.doi-1gy-2324-donc:
+course.pull.%:
+	$(RSYNC) -raz $(REMOTE):$(SERVER_DIR)/books/$* books/ --exclude=build --exclude=published --progress 
