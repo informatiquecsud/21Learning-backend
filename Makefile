@@ -69,7 +69,7 @@ COMPOSE_OPTIONS = -f docker-compose-production.yml
 endif
 
 
-COMPOSE = docker-compose -f docker-compose.yml $(COMPOSE_PGADMIN) $(COMPOSE_OPTIONS)
+COMPOSE = docker compose -f docker-compose.yml $(COMPOSE_PGADMIN) $(COMPOSE_OPTIONS)
 
 
 DB_GIT_BACKUP_DIR = backup/db/git
@@ -187,7 +187,7 @@ up:
 	$(COMPOSE) up -d
 
 down:
-	$(COMPOSE) down
+	$(COMPOSE) -v down 
 
 restart:
 	$(COMPOSE) restart
@@ -620,7 +620,7 @@ remote.db.backup.dump:
 db.restore.targz-name:
 db.restore.%:
 	@echo Restoring SQL dump $* ...
-	cp backup/db/$* backup/tmp.sql.gz
+	sudo cp backup/db/$* backup/tmp.sql.gz
 	# docker cp backup/tmp.sql.gz $(DB_CONTAINER_ID):/home
 	docker stop $(RUNESTONE_CONTAINER_ID)
 	docker stop $(PGADMIN_CONTAINER_ID)
